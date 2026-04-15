@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Notes"/>
+<title>Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;600&family=Inter:wght@400;500&display=swap"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{height:100%;overflow:hidden;}
+body{background:#1a1814;color:#e8e0d4;font-family:'Lora',Georgia,serif;}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3a3530;border-radius:4px}
+::selection{background:rgba(212,180,120,0.35)}
+
+/* Sidebar */
+.sb{transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.note-item{transition:background .15s;cursor:pointer;}
+.note-item:hover{background:rgba(255,255,255,0.05)!important;}
+.note-item.active{background:rgba(212,180,120,0.12)!important;border-left:2px solid #d4b478!important;}
+
+/* Buttons */
+.ib{background:none;border:none;cursor:pointer;opacity:.6;transition:opacity .15s,transform .12s;padding:5px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#e8e0d4;}
+.ib:hover{opacity:1;transform:scale(1.08);}
+.ib.on{opacity:1;color:#d4b478;}
+.tb{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;padding:5px 11px;border-radius:6px;transition:all .15s;letter-spacing:.04em;}
+.tb.act{background:rgba(212,180,120,0.18);color:#d4b478;}
+.tb:not(.act){color:#5a5248;}.tb:not(.act):hover{color:#8a7f72;background:rgba(255,255,255,0.04);}
+
+/* Word-style toolbar */
+.word-toolbar{display:flex;align-items:center;gap:2px;padding:5px 10px;border-bottom:1px solid #2e2b25;background:#1e1c18;flex-wrap:wrap;flex-shrink:0;}
+.wt-btn{background:none;border:1px solid transparent;cursor:pointer;color:#9a9088;font-family:'DM Mono',monospace;font-size:11px;padding:3px 7px;border-radius:4px;transition:all .12s;min-width:28px;text-align:center;display:flex;align-items:center;justify-content:center;}
+.wt-btn:hover{background:rgba(255,255,255,0.07);color:#d4c4a0;border-color:#3a3530;}
+.wt-btn.active{background:rgba(212,180,120,0.18);color:#d4b478;border-color:rgba(212,180,120,0.3);}
+.wt-sep{width:1px;height:20px;background:#2e2b25;margin:0 3px;flex-shrink:0;}
+.wt-select{background:#252220;border:1px solid #3a3530;border-radius:4px;color:#9a9088;font-family:'DM Mono',monospace;font-size:10px;padding:3px 6px;cursor:pointer;outline:none;}
+.wt-select:hover{border-color:#5a5248;}
+.color-swatch{width:18px;height:18px;border-radius:3px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:transform .1s,border-color .1s;}
+.color-swatch:hover{transform:scale(1.15);border-color:#5a5248;}
+.color-swatch.sel{border-color:#d4b478;}
+
+/* Pen swatches */
+.ps{width:19px;height:19px;border-radius:50%;cursor:pointer;transition:transform .12s,box-shadow .12s;border:2px solid transparent;flex-shrink:0;}
+.ps:hover{transform:scale(1.25);}.ps.sel{border-color:#d4b478;box-shadow:0 0 0 2px rgba(212,180,120,.25);transform:scale(1.18);}
+
+/* Note color dots */
+.ndot{width:10px;height:10px;border-radius:50%;cursor:pointer;flex-shrink:0;border:2px solid transparent;transition:transform .1s;}
+.ndot:hover{transform:scale(1.2);}.ndot.sel{border-color:rgba(255,255,255,0.6);}
+
+/* Subject pills */
+.spill{border-radius:10px;font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;cursor:pointer;border:1px solid;transition:all .12s;}
+
+/* Rich text editor */
+.rich-editor{flex:1;outline:none;overflow-y:auto;line-height:1.88;font-size:16px;color:#c8c0b4;caret-color:#d4b478;word-break:break-word;}
+.rich-editor:empty:before{content:attr(data-placeholder);color:#3a3530;pointer-events:none;}
+.rich-editor p{min-height:1.4em;}
+.rich-editor h1{font-size:1.6em;font-weight:700;margin:0.5em 0 0.3em;color:#e8e0d4;}
+.rich-editor h2{font-size:1.25em;font-weight:600;margin:0.4em 0 0.2em;color:#e0d8cc;}
+.rich-editor ul{padding-left:1.4em;margin:0.3em 0;}
+.rich-editor ol{padding-left:1.4em;margin:0.3em 0;}
+.rich-editor li{margin:0.15em 0;}
+.rich-editor hr{border:none;border-top:1px solid #3a3530;margin:1em 0;}
+.rich-editor a{color:#7ab8e0;}
+
+/* AI Panel */
+.ai-tool-btn{border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;padding:5px 9px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;border:1px solid;}
+.flashcard{border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.2s;}
+
+/* Organizer */
+.organizer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center;}
+.organizer-modal{background:#1c1a16;border:1px solid #2e2b25;border-radius:14px;width:min(600px,93vw);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Color picker popup */
+.color-popup{position:absolute;top:100%;left:0;margin-top:4px;background:#1e1c18;border:1px solid #3a3530;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:5px;width:160px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.fi{animation:fi .2s ease;}
+.new-note-btn{margin:8px 10px 4px;padding:7px 11px;background:rgba(212,180,120,0.07);border:1px dashed rgba(212,180,120,0.25);border-radius:6px;color:#d4b478;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;width:calc(100% - 20px);}
+.new-note-btn:hover{background:rgba(212,180,120,0.14);}
+input,select,textarea{outline:none;font-family:inherit;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const NOTE_COLORS=["#f9e4b7","#d4f1c4","#c4e1f1","#f1c4d4","#e4c4f1","#f1e4c4"];
+const PEN_COLORS=[
+  {id:"black",label:"Black",hex:"#1a1a1a"},
+  {id:"white",label:"White",hex:"#f5f5f5"},
+  {id:"metallic",label:"Metallic",hex:"#a8b4c0"},
+  {id:"red",label:"Red",hex:"#e03030"},
+  {id:"blue",label:"Blue",hex:"#2060d0"},
+];
+const EXAM_SUBJECTS=["Economics","Math","History","Science","Language","Other"];
+const FONT_FACES=[
+  {label:"Lora",val:"Lora, Georgia, serif"},
+  {label:"Inter",val:"Inter, system-ui, sans-serif"},
+  {label:"Mono",val:"DM Mono, monospace"},
+  {label:"Playfair",val:"Playfair Display, Georgia, serif"},
+  {label:"Slab",val:"Roboto Slab, Georgia, serif"},
+];
+const FONT_SIZES=["10","11","12","14","16","18","20","24","28","32","36","48"];
+const TEXT_COLORS_PALETTE=[
+  "#e8e0d4","#ffffff","#d4b478","#e05858","#2060d0","#6dd4a0",
+  "#e07090","#b090e0","#7ab8e0","#f0a050","#50c8a0","#a0c040",
+  "#888888","#555555","#222222","#000000",
+];
+const HIGHLIGHT_COLORS=[
+  "#fff176","#ffcc80","#ef9a9a","#80cbc4","#a5d6a7","#90caf9",
+  "#ce93d8","#f48fb1","#ffe0b2","#b2dfdb","transparent",
+];
+
+const fmtDate=ts=>new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const timeAgo=ts=>{
+  const d=Date.now()-ts,m=Math.floor(d/60000);
+  if(m<1)return"just now";if(m<60)return`${m}m ago`;
+  const h=Math.floor(m/60);if(h<24)return`${h}h ago`;
+  return fmtDate(ts);
+};
+
+async function callAI(system,user,maxTokens=900){
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system,messages:[{role:"user",content:user}]})
+    });
+    const d=await r.json();
+    return d.content?.map(b=>b.text||"").join("").trim()||"";
+  }catch{return"";}
+}
+
+// ── Word-like Rich Text Toolbar ──────────────────────────────────────────────
+function WordToolbar({editorRef,onSave}){
+  const [bold,setBold]=useState(false);
+  const [italic,setItalic]=useState(false);
+  const [underline,setUnderline]=useState(false);
+  const [strikethrough,setStrikethrough]=useState(false);
+  const [showTextColor,setShowTextColor]=useState(false);
+  const [showHighlight,setShowHighlight]=useState(false);
+  const [activeTextColor,setActiveTextColor]=useState("#e8e0d4");
+  const [activeHighlight,setActiveHighlight]=useState("transparent");
+  const [curFont,setCurFont]=useState("Lora, Georgia, serif");
+  const [curSize,setCurSize]=useState("16");
+  const savedSel=useRef(null);
+
+  // Update toolbar state on selection change
+  useEffect(()=>{
+    const update=()=>{
+      setBold(document.queryCommandState("bold"));
+      setItalic(document.queryCommandState("italic"));
+      setUnderline(document.queryCommandState("underline"));
+      setStrikethrough(document.queryCommandState("strikethrough"));
+    };
+    document.addEventListener("selectionchange",update);
+    return()=>document.removeEventListener("selectionchange",update);
+  },[]);
+
+  function saveSelection(){
+    const sel=window.getSelection();
+    if(sel&&sel.rangeCount>0) savedSel.current=sel.getRangeAt(0).cloneRange();
+  }
+  function restoreSelection(){
+    if(!savedSel.current)return false;
+    const sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedSel.current);
+    return true;
+  }
+  function exec(cmd,val=null){
+    editorRef.current?.focus();
+    document.execCommand(cmd,false,val);
+    setTimeout(onSave,50);
+  }
+  function applyTextColor(color){
+    restoreSelection();
+    exec("foreColor",color);
+    setActiveTextColor(color);
+    setShowTextColor(false);
+  }
+  function applyHighlight(color){
+    restoreSelection();
+    if(color==="transparent"){exec("hiliteColor","transparent");}
+    else exec("hiliteColor",color);
+    setActiveHighlight(color);
+    setShowHighlight(false);
+  }
+  function applyFont(val){
+    // Use CSS approach via span for font-family
+    restoreSelection();
+    const sel=window.getSelection();
+    if(!sel||sel.isCollapsed)return;
+    exec("fontName",val.split(",")[0].trim());
+    setTimeout(onSave,50);
+    setCurFont(val);
+  }
+  function applySize(size){
+    restoreSelection();
+    // Map px size to execCommand fontSize (1-7)
+    const sz=parseInt(size);
+    const fsMap=[[10,1],[13,2],[16,3],[18,4],[24,5],[32,6],[48,7]];
+    let fs=3;
+    for(const[px,f] of fsMap){if(sz<=px){fs=f;break;}else fs=7;}
+    exec("fontSize",fs);
+    // Override with inline style for exact size
+    const spans=editorRef.current?.querySelectorAll("font[size]");
+    spans?.forEach(s=>{s.style.fontSize=size+"px";});
+    setCurSize(size);
+    setTimeout(onSave,50);
+  }
+  function insertList(type){
+    exec(type==="ul"?"insertUnorderedList":"insertOrderedList");
+  }
+  function insertHR(){
+    exec("insertHTML","<hr/>");
+  }
+  function clearFormat(){
+    restoreSelection();
+    exec("removeFormat");
+  }
+  function alignText(dir){
+    const cmds={left:"justifyLeft",center:"justifyCenter",right:"justifyRight"};
+    exec(cmds[dir]);
+  }
+
+  return(
+    <div className="word-toolbar" onMouseDown={e=>{saveSelection();}}>
+      {/* Font face */}
+      <select className="wt-select" style={{width:90}} value={curFont} onChange={e=>{setCurFont(e.target.value);applyFont(e.target.value);}}>
+        {FONT_FACES.map(f=><option key={f.val} value={f.val}>{f.label}</option>)}
+      </select>
+
+      {/* Font size */}
+      <select className="wt-select" style={{width:52}} value={curSize} onChange={e=>{setCurSize(e.target.value);applySize(e.target.value);}}>
+        {FONT_SIZES.map(s=><option key={s} value={s}>{s}</option>)}
+      </select>
+
+      <div className="wt-sep"/>
+
+      {/* Bold */}
+      <button className={`wt-btn ${bold?"active":""}`} title="Bold (Ctrl+B)" onMouseDown={e=>{e.preventDefault();exec("bold");}}>
+        <strong>B</strong>
+      </button>
+      {/* Italic */}
+      <button className={`wt-btn ${italic?"active":""}`} title="Italic (Ctrl+I)" onMouseDown={e=>{e.preventDefault();exec("italic");}}>
+        <em style={{fontStyle:"italic"}}>I</em>
+      </button>
+      {/* Underline */}
+      <button className={`wt-btn ${underline?"active":""}`} title="Underline (Ctrl+U)" onMouseDown={e=>{e.preventDefault();exec("underline");}}>
+        <span style={{textDecoration:"underline"}}>U</span>
+      </button>
+      {/* Strikethrough */}
+      <button className={`wt-btn ${strikethrough?"active":""}`} title="Strikethrough" onMouseDown={e=>{e.preventDefault();exec("strikethrough");}}>
+        <span style={{textDecoration:"line-through"}}>S</span>
+      </button>
+
+      <div className="wt-sep"/>
+
+      {/* Text color */}
+      <div style={{position:"relative"}}>
+        <button className="wt-btn" title="Text Color" onMouseDown={e=>{e.preventDefault();saveSelection();setShowTextColor(v=>!v);setShowHighlight(false);}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+            <span style={{fontSize:12,fontWeight:700,color:activeTextColor==="transparent"?"#9a9088":activeTextColor}}>A</span>
+            <div style={{width:14,height:3,background:activeTextColor==="transparent"?"#9a9088":activeTextColor,borderRadius:1}}/>
+          </div>
+        </button>
+        {showTextColor&&(
+          <div className="color-popup">
+            {TEXT_COLORS_PALETTE.map(c=>(
+              <div key={c} className={`color-swatch ${activeTextColor===c?"sel":""}`} onClick={()=>applyTextColor(c)}
+                style={{background:c,border:c==="#e8e0d4"||c==="#ffffff"?"1px solid #3a3530":"1px solid transparent"}}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Highlight color */}
+      <div style={{position:"relative"}}>
+        <button className="wt-btn" title="Highlight Color" onMouseDown={e=>{e.preventDefault();saveSelection();setShowHighlight(v=>!v);setShowTextColor(false);}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+            <span style={{fontSize:11}}>ab</span>
+            <div style={{width:14,height:3,background:activeHighlight==="transparent"?"#9a9088":activeHighlight,borderRadius:1,border:activeHighlight==="transparent"?"1px dashed #5a5248":"none"}}/>
+          </div>
+        </button>
+        {showHighlight&&(
+          <div className="color-popup">
+            {HIGHLIGHT_COLORS.map(c=>(
+              <div key={c} className={`color-swatch ${activeHighlight===c?"sel":""}`} onClick={()=>applyHighlight(c)}
+                style={{background:c==="transparent"?"none":"c",border:"1px solid #3a3530",position:"relative",overflow:"hidden",background:c==="transparent"?"repeating-linear-gradient(45deg,#3a3530 0,#3a3530 2px,transparent 0,transparent 50%) 0/6px 6px":"c"}}
+              >
+                {c!=="transparent"&&<div style={{width:"100%",height:"100%",background:c,borderRadius:1}}/>}
+                {c==="transparent"&&<span style={{fontSize:9,color:"#8a7f72",fontFamily:"monospace",lineHeight:"16px",display:"block",textAlign:"center"}}>✕</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="wt-sep"/>
+
+      {/* Alignment */}
+      <button className="wt-btn" title="Align Left" onMouseDown={e=>{e.preventDefault();alignText("left");}}>
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
+      </button>
+      <button className="wt-btn" title="Center" onMouseDown={e=>{e.preventDefault();alignText("center");}}>
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="2" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
+      </button>
+      <button className="wt-btn" title="Align Right" onMouseDown={e=>{e.preventDefault();alignText("right");}}>
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
+      </button>
+
+      <div className="wt-sep"/>
+
+      {/* Lists */}
+      <button className="wt-btn" title="Bullet List" onMouseDown={e=>{e.preventDefault();insertList("ul");}}>
+        <svg width="13" height="11" viewBox="0 0 14 12"><circle cx="1.5" cy="2" r="1.5" fill="currentColor"/><line x1="4" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><circle cx="1.5" cy="6" r="1.5" fill="currentColor"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><circle cx="1.5" cy="10" r="1.5" fill="currentColor"/><line x1="4" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
+      </button>
+      <button className="wt-btn" title="Numbered List" onMouseDown={e=>{e.preventDefault();insertList("ol");}}>
+        <svg width="13" height="11" viewBox="0 0 14 12"><text x="0" y="3.5" fontSize="4" fill="currentColor" fontFamily="monospace">1.</text><line x1="5" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><text x="0" y="7.5" fontSize="4" fill="currentColor" fontFamily="monospace">2.</text><line x1="5" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><text x="0" y="11.5" fontSize="4" fill="currentColor" fontFamily="monospace">3.</text><line x1="5" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
+      </button>
+
+      <div className="wt-sep"/>
+
+      {/* Heading shortcuts */}
+      <button className="wt-btn" title="Heading 1" onMouseDown={e=>{e.preventDefault();exec("formatBlock","<h1>");}}>H1</button>
+      <button className="wt-btn" title="Heading 2" onMouseDown={e=>{e.preventDefault();exec("formatBlock","<h2>");}}>H2</button>
+
+      <div className="wt-sep"/>
+
+      {/* Clear formatting */}
+      <button className="wt-btn" title="Clear Formatting" onMouseDown={e=>{e.preventDefault();clearFormat();}}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7-7-7"/><path d="M5 19h14"/><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/></svg>
+      </button>
+
+      {/* Divider */}
+      <button className="wt-btn" title="Insert Divider" onMouseDown={e=>{e.preventDefault();insertHR();}}>—</button>
+    </div>
+  );
+}
+
+// ── Drawing Canvas ──────────────────────────────────────────────────────────
+function DrawingCanvas({penColor,savedStrokes,onSave}){
+  const cvRef=useRef(null);
+  const [strokes,setStrokes]=useState(savedStrokes||[]);
+  const curRef=useRef(null),drawRef=useRef(false),sRef=useRef(savedStrokes||[]);
+  const tmr=useRef(null);
+  const sched=s=>{clearTimeout(tmr.current);tmr.current=setTimeout(()=>onSave(s),700);};
+
+  const render=useCallback((list,live=null)=>{
+    const cv=cvRef.current;if(!cv)return;
+    const ctx=cv.getContext("2d");
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle="rgba(80,110,160,0.12)";ctx.lineWidth=0.5;
+    for(let x=0;x<=cv.width;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke();}
+    for(let y=0;y<=cv.height;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke();}
+    const ax=Math.round(cv.width*0.12),ay=Math.round(cv.height*0.86);
+    ctx.strokeStyle="rgba(90,120,180,0.28)";ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(ax,12);ctx.lineTo(ax,cv.height-12);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(12,ay);ctx.lineTo(cv.width-12,ay);ctx.stroke();
+    ctx.fillStyle="rgba(90,120,180,0.28)";
+    ctx.beginPath();ctx.moveTo(ax,6);ctx.lineTo(ax-4,18);ctx.lineTo(ax+4,18);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cv.width-6,ay);ctx.lineTo(cv.width-18,ay-4);ctx.lineTo(cv.width-18,ay+4);ctx.fill();
+    const all=live?[...list,live]:list;
+    all.forEach(s=>{
+      if(!s.points||s.points.length<2)return;
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=2.2;
+      if(s.color==="#a8b4c0"){
+        const g=ctx.createLinearGradient(s.points[0].x,s.points[0].y,s.points[s.points.length-1].x,s.points[s.points.length-1].y);
+        g.addColorStop(0,"#d0dce8");g.addColorStop(0.45,"#8a9eae");g.addColorStop(1,"#c2ceda");
+        ctx.strokeStyle=g;
+      }else ctx.strokeStyle=s.color;
+      ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
+      for(let i=1;i<s.points.length-1;i++){
+        const mx=(s.points[i].x+s.points[i+1].x)/2,my=(s.points[i].y+s.points[i+1].y)/2;
+        ctx.quadraticCurveTo(s.points[i].x,s.points[i].y,mx,my);
+      }
+      ctx.lineTo(s.points[s.points.length-1].x,s.points[s.points.length-1].y);
+      ctx.stroke();ctx.restore();
+    });
+  },[]);
+
+  useEffect(()=>{
+    const cv=cvRef.current;if(!cv)return;
+    const resize=()=>{const r=cv.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;cv.width=r.width;cv.height=r.height;render(sRef.current);};
+    resize();const ro=new ResizeObserver(resize);ro.observe(cv.parentElement);return()=>ro.disconnect();
+  },[render]);
+  useEffect(()=>{render(strokes);},[strokes,render]);
+
+  const getPos=e=>{const cv=cvRef.current,r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};};
+  const onStart=e=>{e.preventDefault();drawRef.current=true;curRef.current={color:penColor,points:[getPos(e)]};};
+  const onMove=e=>{e.preventDefault();if(!drawRef.current||!curRef.current)return;curRef.current={...curRef.current,points:[...curRef.current.points,getPos(e)]};render(sRef.current,curRef.current);};
+  const onEnd=()=>{if(!drawRef.current)return;drawRef.current=false;const s=curRef.current;if(s&&s.points.length>1){const n=[...sRef.current,s];sRef.current=n;setStrokes(n);sched(n);}curRef.current=null;};
+  const undo=()=>{const n=sRef.current.slice(0,-1);sRef.current=n;setStrokes(n);sched(n);};
+  const clear=()=>{sRef.current=[];setStrokes([]);sched([]);};
+
+  return(
+    <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 14px",borderBottom:"1px solid #2e2b25",background:"rgba(0,0,0,0.1)",flexShrink:0}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248"}}>{strokes.length} stroke{strokes.length!==1?"s":""}</span>
+        <div style={{flex:1}}/>
+        <button onClick={undo} disabled={!strokes.length} style={{background:"none",border:"1px solid #3a3530",borderRadius:4,color:strokes.length?"#8a7f72":"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"2px 8px",cursor:strokes.length?"pointer":"default"}}>↩ Undo</button>
+        <button onClick={clear} disabled={!strokes.length} style={{background:"none",border:"1px solid #3a3530",borderRadius:4,color:strokes.length?"#e05858":"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"2px 8px",cursor:strokes.length?"pointer":"default"}}>Clear</button>
+      </div>
+      <div style={{flex:1,position:"relative",background:"#0d1018",cursor:"crosshair",overflow:"hidden"}}>
+        <canvas ref={cvRef} onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onEnd} onMouseLeave={onEnd} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{display:"block",width:"100%",height:"100%",touchAction:"none"}}/>
+        {!strokes.length&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",color:"#2a2e3a",fontFamily:"'DM Mono',monospace",fontSize:12,pointerEvents:"none",textAlign:"center",lineHeight:2}}>Draw graphs, diagrams,<br/>or freehand notes</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── AI Panel ────────────────────────────────────────────────────────────────
+function AIPanel({note,onClose,onApply,onTitleSuggest}){
+  const [mode,setMode]=useState(null);
+  const [result,setResult]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [cards,setCards]=useState(null);
+  const [flipped,setFlipped]=useState({});
+
+  async function run(m){
+    setMode(m);setResult("");setCards(null);setLoading(true);
+    // Strip HTML for AI
+    const tmp=document.createElement("div");tmp.innerHTML=note.body||"";
+    const content=`Title: ${note.title||"Untitled"}\n\n${tmp.textContent}`;
+    if(m==="summarize"){const r=await callAI("You are a concise study assistant. Summarize the note in 3-5 bullet points. Use • for bullets. Be brief and clear.",content);setResult(r);}
+    else if(m==="explain"){const r=await callAI("You are a helpful tutor. Expand and explain the key concepts in this note in simple terms. Add context that helps a student understand.",content);setResult(r);}
+    else if(m==="flashcards"){
+      const r=await callAI('Create exactly 5 flashcard question-answer pairs from this note. Return ONLY valid JSON array: [{"q":"question","a":"answer"},...]. No markdown, no extra text.',content,800);
+      try{const clean=r.replace(/```json|```/g,"").trim();setCards(JSON.parse(clean));}
+      catch{setCards([{q:"Could not parse",a:"Try again"}]);}
+    }else if(m==="title"){
+      const r=await callAI("Suggest a short, clear title (max 6 words) for this note. Return ONLY the title, no quotes.",content,100);
+      onTitleSuggest(r.trim());onClose();
+    }else if(m==="quiz"){
+      const r=await callAI("Create a 5-question multiple choice quiz from this note. Format: Q1. [question]\na) ...\nb) ...\nc) ...\nd) ...\nAnswer: [letter]\n\nRepeat for each question.",content,900);
+      setResult(r);
+    }
+    setLoading(false);
+  }
+
+  const tools=[{id:"summarize",icon:"⚡",label:"Summarize"},{id:"explain",icon:"🔍",label:"Explain"},{id:"flashcards",icon:"🃏",label:"Flashcards"},{id:"quiz",icon:"📝",label:"Quiz me"},{id:"title",icon:"✨",label:"Auto-title"}];
+
+  return(
+    <div style={{width:285,borderLeft:"1px solid #2e2b25",background:"#1c1a16",display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",borderBottom:"1px solid #2e2b25"}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#d4b478",letterSpacing:"0.08em"}}>✦ AI Tools</span>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px"}}>×</button>
+      </div>
+      <div style={{display:"flex",gap:5,padding:"8px 10px",flexWrap:"wrap",borderBottom:"1px solid #2e2b25"}}>
+        {tools.map(t=>(
+          <button key={t.id} className="ai-tool-btn" onClick={()=>run(t.id)}
+            style={{background:mode===t.id?"rgba(212,180,120,0.18)":"rgba(255,255,255,0.04)",borderColor:mode===t.id?"rgba(212,180,120,0.4)":"#2e2b25",color:mode===t.id?"#d4b478":"#8a7f72"}}>
+            <span>{t.icon}</span>{t.label}
+          </button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"12px 14px"}}>
+        {loading&&<div style={{display:"flex",alignItems:"center",gap:8,color:"#6a6258",fontFamily:"'DM Mono',monospace",fontSize:11}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>◌</span> Thinking…</div>}
+        {!loading&&result&&<div><div style={{color:"#c0b8b0",fontFamily:"'Lora',Georgia,serif",fontSize:13,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{result}</div>{(mode==="summarize"||mode==="explain")&&<button onClick={()=>onApply(result)} style={{marginTop:12,padding:"6px 14px",background:"rgba(212,180,120,0.12)",border:"1px solid rgba(212,180,120,0.3)",borderRadius:6,color:"#d4b478",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>↓ Append to note</button>}</div>}
+        {!loading&&cards&&<div style={{display:"flex",flexDirection:"column",gap:10}}><div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248",marginBottom:2}}>Tap to flip</div>{cards.map((c,i)=><div key={i} className="flashcard" onClick={()=>setFlipped(f=>({...f,[i]:!f[i]}))} style={{background:flipped[i]?"rgba(109,212,160,0.08)":"rgba(212,180,120,0.06)",border:`1px solid ${flipped[i]?"rgba(109,212,160,0.25)":"rgba(212,180,120,0.2)"}`}}><div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#5a5248",marginBottom:4}}>{flipped[i]?"ANSWER":"QUESTION"} {i+1}</div><div style={{color:flipped[i]?"#6dd4a0":"#e8e0d4",fontFamily:"'Lora',Georgia,serif",fontSize:12,lineHeight:1.6}}>{flipped[i]?c.a:c.q}</div></div>)}</div>}
+        {!loading&&!result&&!cards&&!mode&&<div style={{color:"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:11,lineHeight:1.8}}>Select a tool above to get AI-powered help with your notes.</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── Exam Organizer ──────────────────────────────────────────────────────────
+function ExamOrganizer({notes,onClose,onSelect}){
+  const [filter,setFilter]=useState("All");
+  const tagged=notes.filter(n=>n.examTag);
+  const shown=filter==="All"?tagged:tagged.filter(n=>n.examTag===filter);
+  const bySubject=EXAM_SUBJECTS.reduce((acc,s)=>{acc[s]=tagged.filter(n=>n.examTag===s).length;return acc;},{});
+  return(
+    <div className="organizer-overlay" onClick={onClose}>
+      <div className="organizer-modal" onClick={e=>e.stopPropagation()}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #2e2b25",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div><div style={{fontFamily:"'Lora',Georgia,serif",fontSize:17,fontWeight:600,color:"#e8e0d4"}}>Exam Organizer</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248",marginTop:2}}>{tagged.length} tagged note{tagged.length!==1?"s":""}</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px"}}>×</button>
+        </div>
+        <div style={{display:"flex",gap:6,padding:"10px 16px",borderBottom:"1px solid #2e2b25",flexWrap:"wrap"}}>
+          {["All",...EXAM_SUBJECTS].map(s=><button key={s} className="spill" onClick={()=>setFilter(s)} style={{background:filter===s?"rgba(212,180,120,0.18)":"rgba(255,255,255,0.04)",borderColor:filter===s?"rgba(212,180,120,0.4)":"#3a3530",color:filter===s?"#d4b478":"#6a6258"}}>{s}{s!=="All"&&bySubject[s]>0?` (${bySubject[s]})`:""}</button>)}
+        </div>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid #2e2b25",display:"flex",gap:8,flexWrap:"wrap"}}>
+          {EXAM_SUBJECTS.filter(s=>bySubject[s]>0).map(s=>(
+            <div key={s} style={{flex:"1 1 110px",background:"rgba(255,255,255,0.03)",border:"1px solid #2e2b25",borderRadius:8,padding:"8px 10px"}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#6a6258",marginBottom:4}}>{s.toUpperCase()}</div>
+              <div style={{fontFamily:"'Lora',Georgia,serif",fontSize:18,fontWeight:600,color:"#d4b478"}}>{bySubject[s]}</div>
+              <div style={{marginTop:4,height:3,background:"#2a2722",borderRadius:3}}><div style={{width:`${Math.min(100,bySubject[s]*20)}%`,height:"100%",background:"#d4b478",borderRadius:3}}/></div>
+            </div>
+          ))}
+        </div>
+        <div style={{flex:1,overflowY:"auto"}}>
+          {shown.length===0&&<div style={{padding:"24px 20px",color:"#4a4540",fontFamily:"'DM Mono',monospace",fontSize:11,textAlign:"center"}}>No notes tagged with {filter}</div>}
+          {shown.map(n=>(
+            <div key={n.id} className="note-item" onClick={()=>{onSelect(n.id);onClose();}} style={{padding:"10px 20px",borderBottom:"1px solid #252220",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:n.color,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:n.title?"#e8e0d4":"#5a5248",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.title||"Untitled"}</div>
+                <div style={{fontSize:10,color:"#5a5248",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:"'DM Mono',monospace"}}>{n.body?n.body.replace(/<[^>]+>/g," ").slice(0,50):"—"}</div>
+              </div>
+              <span style={{background:"rgba(212,180,120,0.1)",color:"#d4b478",borderRadius:10,padding:"2px 8px",fontFamily:"'DM Mono',monospace",fontSize:9,flexShrink:0}}>{n.examTag}</span>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#3a3530",flexShrink:0}}>{timeAgo(n.updatedAt)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ────────────────────────────────────────────────────────────────
+function App(){
+  const [notes,setNotes]=useState(()=>{try{return JSON.parse(localStorage.getItem("notes_v4")||"[]");}catch{return [];}});
+  const [activeId,setActiveId]=useState(null);
+  const [search,setSearch]=useState("");
+  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const [tab,setTab]=useState("text");
+  const [penColor,setPenColor]=useState("#1a1a1a");
+  const [showAI,setShowAI]=useState(false);
+  const [showOrganizer,setShowOrganizer]=useState(false);
+  const [subjectFilter,setSubjectFilter]=useState("All");
+  const titleRef=useRef(null),editorRef=useRef(null),acTimer=useRef(null);
+  const isComposing=useRef(false);
+
+  useEffect(()=>{localStorage.setItem("notes_v4",JSON.stringify(notes));},[notes]);
+
+  const activeNote=notes.find(n=>n.id===activeId)||null;
+
+  const filtered=notes
+    .filter(n=>{
+      const q=search.toLowerCase();
+      const tmp=document.createElement("div");tmp.innerHTML=n.body||"";const plainBody=tmp.textContent.toLowerCase();
+      const ms=!q||n.title.toLowerCase().includes(q)||plainBody.includes(q)||(n.examTag||"").toLowerCase().includes(q);
+      const mf=subjectFilter==="All"||n.examTag===subjectFilter;
+      return ms&&mf;
+    })
+    .sort((a,b)=>b.updatedAt-a.updatedAt);
+
+  function newNote(){
+    const n={id:Date.now().toString(),title:"",body:"",color:NOTE_COLORS[notes.length%NOTE_COLORS.length],strokes:[],examTag:"",createdAt:Date.now(),updatedAt:Date.now()};
+    setNotes(p=>[n,...p]);setActiveId(n.id);setTab("text");
+    setTimeout(()=>titleRef.current?.focus(),60);
+  }
+  function updateNote(field,val){setNotes(p=>p.map(n=>n.id===activeId?{...n,[field]:val,updatedAt:Date.now()}:n));}
+  function deleteNote(id){
+    if(!confirm("Delete this note?"))return;
+    setNotes(p=>p.filter(n=>n.id!==id));
+    if(activeId===id)setActiveId(notes.find(n=>n.id!==id)?.id||null);
+  }
+  function changeNoteColor(c){setNotes(p=>p.map(n=>n.id===activeId?{...n,color:c}:n));}
+  function saveStrokes(s){setNotes(p=>p.map(n=>n.id===activeId?{...n,strokes:s,updatedAt:Date.now()}:n));}
+
+  // Save rich text content
+  function saveEditorContent(){
+    if(!editorRef.current||!activeId)return;
+    const html=editorRef.current.innerHTML;
+    setNotes(p=>p.map(n=>n.id===activeId?{...n,body:html,updatedAt:Date.now()}:n));
+  }
+
+  // Sync editor content when switching notes
+  useEffect(()=>{
+    if(!editorRef.current)return;
+    if(activeNote&&tab==="text"){
+      if(editorRef.current.innerHTML!==activeNote.body){
+        editorRef.current.innerHTML=activeNote.body||"";
+      }
+    }
+  },[activeId,tab]);
+
+  function applyAIText(text){
+    if(!editorRef.current)return;
+    editorRef.current.focus();
+    document.execCommand("insertHTML",false,`<hr/><p>${text.replace(/\n/g,"</p><p>")}</p>`);
+    saveEditorContent();
+  }
+  function applyTitle(t){updateNote("title",t);}
+
+  function startVoice(){
+    if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert("Voice input not supported in this browser.");return;}
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    const r=new SR();r.lang="en-US";r.interimResults=false;r.maxAlternatives=1;
+    r.onresult=e=>{
+      editorRef.current?.focus();
+      document.execCommand("insertText",false," "+e.results[0][0].transcript);
+      saveEditorContent();
+    };
+    r.start();
+  }
+
+  function exportPDF(){
+    if(!activeNote)return;
+    const w=window.open("","_blank");
+    w.document.write(`<!DOCTYPE html><html><head><title>${activeNote.title||"Note"}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap"/><style>body{font-family:'Lora',Georgia,serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.7;}h1.note-title{font-size:26px;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:8px;}h1,h2{margin:0.5em 0 0.3em;}ul,ol{padding-left:1.5em;}hr{border:none;border-top:1px solid #ccc;margin:1em 0;}</style></head><body><h1 class="note-title">${activeNote.title||"Untitled"}</h1><p style="color:#888;font-size:12px;margin-bottom:24px;">${fmtDate(activeNote.createdAt)}${activeNote.examTag?" · "+activeNote.examTag:""}</p>${activeNote.body}</body></html>`);
+    w.document.close();w.print();
+  }
+
+  const wc=activeNote?(()=>{const t=document.createElement("div");t.innerHTML=activeNote.body||"";return t.textContent.trim().split(/\s+/).filter(Boolean).length;})():0;
+
+  return(
+    <div style={{display:"flex",height:"100vh",height:"100dvh",background:"#1a1814",color:"#e8e0d4",overflow:"hidden"}}>
+
+      {showOrganizer&&<ExamOrganizer notes={notes} onClose={()=>setShowOrganizer(false)} onSelect={id=>{setActiveId(id);setTab("text");}}/>}
+
+      {/* ── Sidebar ── */}
+      <div className="sb" style={{width:sidebarOpen?252:0,minWidth:sidebarOpen?252:0,background:"#211f1b",borderRight:"1px solid #2e2b25",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"15px 12px 10px",borderBottom:"1px solid #2e2b25",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".14em",color:"#8a7f72",textTransform:"uppercase"}}>Notes</span>
+            <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#4a4540"}}>{notes.length}</span>
+              <button className="ib" onClick={()=>setShowOrganizer(true)} title="Exam Organizer" style={{fontSize:13,opacity:.7}}>📋</button>
+            </div>
+          </div>
+          <div style={{position:"relative",marginBottom:7}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search all notes…"
+              style={{width:"100%",background:"#2a2722",border:"1px solid #3a3530",borderRadius:6,padding:"6px 26px 6px 26px",color:"#e8e0d4",fontFamily:"'DM Mono',monospace",fontSize:11}}/>
+            <svg style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",opacity:.35,pointerEvents:"none"}} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:15,lineHeight:1,padding:0}}>×</button>}
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {["All",...EXAM_SUBJECTS].map(s=>(
+              <button key={s} className="spill" onClick={()=>setSubjectFilter(s)}
+                style={{background:subjectFilter===s?"rgba(212,180,120,0.15)":"transparent",borderColor:subjectFilter===s?"rgba(212,180,120,0.35)":"#2e2b25",color:subjectFilter===s?"#d4b478":"#4a4540"}}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button className="new-note-btn" onClick={newNote}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>New note
+        </button>
+
+        <div style={{flex:1,overflowY:"auto"}}>
+          {filtered.length===0&&<div style={{padding:"20px 12px",color:"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:11,textAlign:"center"}}>{search?"No results":"No notes yet"}</div>}
+          {filtered.map(n=>(
+            <div key={n.id} className={`note-item ${n.id===activeId?"active":""}`} onClick={()=>{saveEditorContent();setActiveId(n.id);}} style={{padding:"9px 12px",borderLeft:"2px solid transparent",borderBottom:"1px solid #221f1c"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:6}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:n.title?"#e8e0d4":"#4a4540",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:2}}>{n.title||"Untitled"}</div>
+                  <div style={{fontSize:10,color:"#4a4540",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:"'DM Mono',monospace",display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis"}}>{(()=>{const t=document.createElement("div");t.innerHTML=n.body||"";return t.textContent.replace(/\n/g," ").slice(0,26)||"—";})()}</span>
+                    {n.strokes?.length>0&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#4a4540" strokeWidth="2"><path d="M3 17c3-3 5-5 8-2s5-1 8-5"/></svg>}
+                    {n.examTag&&<span style={{background:"rgba(212,180,120,0.1)",color:"#c4a060",borderRadius:8,padding:"0 5px",fontSize:8,flexShrink:0}}>{n.examTag}</span>}
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:n.color}}/>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#333"}}>{timeAgo(n.updatedAt)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Editor ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,background:"#1a1814"}}>
+
+        {/* Top bar */}
+        <div style={{display:"flex",alignItems:"center",padding:"7px 10px",borderBottom:"1px solid #2e2b25",gap:4,background:"rgba(0,0,0,0.18)",flexShrink:0,flexWrap:"wrap"}}>
+          <button className="ib" onClick={()=>setSidebarOpen(v=>!v)}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+          </button>
+
+          {activeNote&&<>
+            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
+            <button className={`tb ${tab==="text"?"act":""}`} onClick={()=>{saveEditorContent();setTab("text");}}>✏︎ Write</button>
+            <button className={`tb ${tab==="draw"?"act":""}`} onClick={()=>{saveEditorContent();setTab("draw");}}>⊹ Draw</button>
+          </>}
+
+          <div style={{flex:1}}/>
+
+          {activeNote&&tab==="text"&&<>
+            <button className="ib" onClick={startVoice} title="Voice input" style={{color:"#6a6258"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+            </button>
+            <button className={`ib ${showAI?"on":""}`} onClick={()=>setShowAI(v=>!v)} title="AI Tools">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+            </button>
+            <button className="ib" onClick={exportPDF} title="Export PDF" style={{color:"#6a6258"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
+            <div style={{display:"flex",gap:3}}>
+              {NOTE_COLORS.map(c=><div key={c} className={`ndot ${activeNote.color===c?"sel":""}`} onClick={()=>changeNoteColor(c)} style={{background:c}}/>)}
+            </div>
+            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#3a3530"}}>{wc}w</span>
+            <select value={activeNote.examTag||""} onChange={e=>updateNote("examTag",e.target.value)} style={{background:"#2a2722",border:"1px solid #3a3530",borderRadius:5,color:"#7a7068",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"3px 5px",cursor:"pointer"}}>
+              <option value="">Tag…</option>
+              {EXAM_SUBJECTS.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>
+          </>}
+
+          {activeNote&&tab==="draw"&&
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {PEN_COLORS.map(pc=>(
+                <div key={pc.id} className={`ps ${penColor===pc.hex?"sel":""}`} onClick={()=>setPenColor(pc.hex)} title={pc.label}
+                  style={{background:pc.id==="metallic"?"linear-gradient(135deg,#d0dce8 0%,#8a9eae 50%,#c2ceda 100%)":pc.hex,boxShadow:pc.id==="white"?"inset 0 0 0 1px #4a4540":"none"}}/>
+              ))}
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248"}}>{PEN_COLORS.find(p=>p.hex===penColor)?.label}</span>
+            </div>
+          }
+
+          {activeNote&&<>
+            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
+            <button className="ib" onClick={()=>deleteNote(activeNote.id)} style={{color:"#e05858"}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </>}
+        </div>
+
+        {/* Word toolbar — only in write mode */}
+        {activeNote&&tab==="text"&&(
+          <WordToolbar editorRef={editorRef} onSave={saveEditorContent}/>
+        )}
+
+        {/* Content */}
+        {!activeNote?(
+          <div className="fi" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,color:"#3a3530"}}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"#4a4540"}}>{notes.length===0?"Create your first note":"Select a note to edit"}</div>
+            {notes.length===0&&<button onClick={newNote} style={{marginTop:6,padding:"7px 18px",background:"rgba(212,180,120,0.1)",border:"1px solid rgba(212,180,120,0.28)",borderRadius:6,color:"#d4b478",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer"}}>+ New note</button>}
+          </div>
+        ):tab==="text"?(
+          <div style={{flex:1,display:"flex",minHeight:0}}>
+            <div className="fi" style={{flex:1,display:"flex",flexDirection:"column",padding:"24px 44px",maxWidth:720,width:"100%",margin:"0 auto",minHeight:0,overflowY:"auto"}}>
+              {/* Title */}
+              <input ref={titleRef} value={activeNote.title} onChange={e=>updateNote("title",e.target.value)} placeholder="Title"
+                style={{background:"none",border:"none",color:"#e8e0d4",fontFamily:"'Lora',Georgia,serif",fontSize:24,fontWeight:600,width:"100%",padding:"0 0 10px",borderBottom:"1px solid #252220",marginBottom:14,caretColor:"#d4b478"}}/>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:18}}>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#3a3530"}}>{fmtDate(activeNote.createdAt)}</span>
+                {activeNote.examTag&&<span style={{background:"rgba(212,180,120,0.1)",color:"#c4a060",borderRadius:10,padding:"1px 8px",fontFamily:"'DM Mono',monospace",fontSize:9}}>{activeNote.examTag}</span>}
+              </div>
+              {/* Rich text editor */}
+              <div
+                ref={editorRef}
+                className="rich-editor"
+                contentEditable={true}
+                suppressContentEditableWarning={true}
+                data-placeholder="Start writing… highlight text to format it"
+                onInput={saveEditorContent}
+                onBlur={saveEditorContent}
+                onKeyDown={e=>{
+                  // Ctrl/Cmd + shortcuts
+                  if((e.ctrlKey||e.metaKey)){
+                    if(e.key==="b"){e.preventDefault();document.execCommand("bold",false,null);}
+                    if(e.key==="i"){e.preventDefault();document.execCommand("italic",false,null);}
+                    if(e.key==="u"){e.preventDefault();document.execCommand("underline",false,null);}
+                    if(e.key==="z"){e.preventDefault();document.execCommand("undo",false,null);}
+                    if(e.key==="y"){e.preventDefault();document.execCommand("redo",false,null);}
+                  }
+                }}
+                style={{flex:1,fontFamily:"'Lora',Georgia,serif"}}
+              />
+            </div>
+            {showAI&&<AIPanel note={activeNote} onClose={()=>setShowAI(false)} onApply={applyAIText} onTitleSuggest={applyTitle}/>}
+          </div>
+        ):(
+          <DrawingCanvas key={activeId} penColor={penColor} savedStrokes={activeNote.strokes||[]} onSave={saveStrokes}/>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
