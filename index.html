@@ -2,97 +2,574 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Notes"/>
 <title>Notes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;600&family=Inter:wght@400;500&display=swap"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body,#root{height:100%;overflow:hidden;}
-body{background:#1a1814;color:#e8e0d4;font-family:'Lora',Georgia,serif;}
+html,body{height:100%;overflow:hidden;background:#1a1814;color:#e8e0d4;font-family:'Lora',Georgia,serif;}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3a3530;border-radius:4px}
 ::selection{background:rgba(212,180,120,0.35)}
 
-/* Sidebar */
-.sb{transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
-.note-item{transition:background .15s;cursor:pointer;}
-.note-item:hover{background:rgba(255,255,255,0.05)!important;}
-.note-item.active{background:rgba(212,180,120,0.12)!important;border-left:2px solid #d4b478!important;}
+/* Safe area wrapper — pushes everything below the iPad status bar */
+#safe-top{height:env(safe-area-inset-top,0px);min-height:env(safe-area-inset-top,0px);background:#1a1814;flex-shrink:0;}
+#root-wrap{display:flex;flex-direction:column;height:100dvh;height:100vh;}
+#app{display:flex;flex:1;overflow:hidden;}
 
-/* Buttons */
+/* ── Fidget Bar ── */
+#fidget-bar{display:flex;align-items:center;height:64px;background:#080604;border-bottom:2px solid #1a1814;flex-shrink:0;gap:12px;padding:0 16px;user-select:none;overflow:hidden;position:relative;}
+
+/* ── STAR WARS Lightsaber — vertical stick ── */
+#saber-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;flex-shrink:0;position:relative;
+  height:44px;justify-content:flex-end;gap:0;
+  -webkit-tap-highlight-color:transparent;
+}
+/* Blade — shoots upward */
+#saber-blade{
+  width:5px;
+  height:0;
+  border-radius:3px 3px 0 0;
+  transition:height .45s cubic-bezier(.2,0,.1,1);
+  position:relative;flex-shrink:0;
+  overflow:visible;
+}
+#saber-blade.on{height:24px;}
+#saber-blade-glow{
+  position:absolute;inset:-4px -4px -4px -4px;
+  border-radius:6px;
+  background:var(--blade-color,#00e5ff);
+  filter:blur(5px);opacity:0.75;
+}
+#saber-blade-inner{
+  position:absolute;inset:0;
+  border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.95) 0%,var(--blade-color,#00e5ff) 25%,var(--blade-color,#00e5ff) 100%);
+}
+#saber-blade-core{
+  position:absolute;left:1px;right:1px;top:0;bottom:4px;
+  border-radius:2px 2px 0 0;
+  background:rgba(255,255,255,0.9);
+}
+/* emitter guard — horizontal crossbar */
+#saber-guard{
+  width:14px;height:4px;flex-shrink:0;
+  background:linear-gradient(90deg,#555,#aaa,#ccc,#aaa,#555);
+  border-radius:2px;border:1px solid #333;
+  box-shadow:0 0 4px rgba(0,0,0,0.6);
+}
+/* Hilt — vertical handle */
+#saber-hilt{
+  width:7px;height:16px;
+  background:linear-gradient(90deg,#666 0%,#bbb 30%,#ddd 50%,#bbb 70%,#666 100%);
+  border-radius:2px 2px 3px 3px;
+  border:1px solid #444;
+  position:relative;flex-shrink:0;
+  box-shadow:inset 1px 0 2px rgba(255,255,255,0.25),inset -1px 0 2px rgba(0,0,0,0.4);
+}
+/* grip ridges */
+#saber-hilt::before{
+  content:'';position:absolute;inset:0;border-radius:2px 2px 3px 3px;
+  background:repeating-linear-gradient(180deg,transparent 0px,transparent 2px,rgba(0,0,0,0.2) 2px,rgba(0,0,0,0.2) 3px);
+}
+/* activation button */
+#saber-hilt::after{
+  content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;
+  background:radial-gradient(circle,#ff4444 40%,#880000 100%);
+  border-radius:50%;border:1px solid #222;
+  box-shadow:0 0 4px rgba(255,60,60,0.9);
+}
+/* pommel cap */
+#saber-pommel{
+  width:9px;height:5px;flex-shrink:0;
+  background:linear-gradient(90deg,#555,#999,#555);
+  border-radius:0 0 4px 4px;
+  border:1px solid #333;border-top:none;
+}
+
+/* Saber color picker */
+#saber-colors{display:flex;gap:5px;align-items:center;margin-left:6px;}
+.saber-dot{width:11px;height:11px;border-radius:50%;cursor:pointer;border:1.5px solid transparent;transition:transform .12s,border-color .12s,box-shadow .12s;flex-shrink:0;}
+.saber-dot:hover{transform:scale(1.35);}
+.saber-dot.sel{border-color:white;transform:scale(1.25);box-shadow:0 0 5px var(--dot-glow,white);}
+
+/* Hum text */
+#saber-hum{font-family:'DM Mono',monospace;font-size:7px;color:#2a2722;letter-spacing:.1em;margin-left:3px;transition:color .3s;min-width:22px;}
+#saber-hum.on{color:var(--blade-color,#00e5ff);text-shadow:0 0 6px var(--blade-color,#00e5ff);}
+
+/* Divider */
+.fb-sep{width:1px;height:28px;background:#1e1c18;flex-shrink:0;margin:0 4px;}
+
+/* ── Manual Treadmill ── */
+#treadmill-wrap{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.fb-label{font-family:'DM Mono',monospace;font-size:7px;color:#3a3530;letter-spacing:.1em;text-transform:uppercase;}
+/* Treadmill frame */
+#treadmill-frame{
+  width:160px;height:28px;
+  background:#111009;
+  border:2px solid #333028;
+  border-radius:14px;
+  position:relative;overflow:hidden;
+  cursor:grab;flex-shrink:0;
+  box-shadow:inset 0 3px 8px rgba(0,0,0,0.9),inset 0 -1px 3px rgba(255,255,255,0.03);
+}
+#treadmill-frame:active{cursor:grabbing;}
+/* The rubber belt surface */
+#treadmill-belt{
+  position:absolute;top:4px;bottom:4px;left:0;
+  width:400%;
+  background:repeating-linear-gradient(
+    90deg,
+    #2a2620 0px, #2a2620 18px,
+    #1e1c18 18px, #1e1c18 20px,
+    #252220 20px, #252220 34px,
+    #1e1c18 34px, #1e1c18 36px
+  );
+  border-radius:6px;
+  will-change:transform;
+}
+/* Side rollers */
+#treadmill-frame::before,#treadmill-frame::after{
+  content:'';position:absolute;top:2px;bottom:2px;width:12px;
+  background:radial-gradient(ellipse at center,#555 0%,#333 60%,#222 100%);
+  border-radius:50%;z-index:2;box-shadow:1px 0 4px rgba(0,0,0,0.6);
+}
+#treadmill-frame::before{left:-4px;}
+#treadmill-frame::after{right:-4px;box-shadow:-1px 0 4px rgba(0,0,0,0.6);}
+/* Speed readout */
+#treadmill-speed{
+  font-family:'DM Mono',monospace;font-size:9px;color:#3a3530;
+  min-width:20px;text-align:center;letter-spacing:.05em;flex-shrink:0;
+  transition:color .2s;
+}
+#treadmill-speed.moving{color:#d4b478;text-shadow:0 0 6px rgba(212,180,120,0.4);}
+
+/* ── Haptic Rings ── */
+#rings-wrap{display:flex;align-items:center;gap:8px;}
+.fidget-ring{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid #2a2722;cursor:pointer;
+  position:relative;display:flex;align-items:center;justify-content:center;
+  transition:border-color .12s,box-shadow .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.fidget-ring:active{transform:scale(0.88);}
+.fidget-ring.spinning{animation:fspin var(--spd,0.5s) linear infinite;}
+.fidget-ring.c0{background:radial-gradient(circle,#2a2520 0%,#1a1510 100%);}
+.fidget-ring.c1{background:radial-gradient(circle,#1a2030 0%,#0a1020 100%);}
+.fidget-ring.c2{background:radial-gradient(circle,#2a1520 0%,#1a0510 100%);}
+.fidget-ring.c0.spinning{border-color:#d4b478;box-shadow:0 0 10px rgba(212,180,120,0.7),0 0 20px rgba(212,180,120,0.3);}
+.fidget-ring.c1.spinning{border-color:#60b0ff;box-shadow:0 0 10px rgba(96,176,255,0.7),0 0 20px rgba(96,176,255,0.3);}
+.fidget-ring.c2.spinning{border-color:#e05858;box-shadow:0 0 10px rgba(224,88,88,0.7),0 0 20px rgba(224,88,88,0.3);}
+.fidget-dot{width:5px;height:5px;border-radius:50%;background:#2a2722;transition:background .1s;}
+.fidget-ring.spinning .fidget-dot{background:white;}
+/* haptic pulse flash */
+@keyframes haptic-flash{0%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(0.92)}100%{transform:scale(1)}}
+.fidget-ring.haptic{animation:haptic-flash 0.18s ease !important;}
+
+/* Laser cursor */
+#laser-cursor{position:fixed;pointer-events:none;z-index:9999;display:none;}
+#laser-dot{width:8px;height:8px;border-radius:50%;background:#ff2020;box-shadow:0 0 4px 2px rgba(255,32,32,0.9),0 0 10px 4px rgba(255,32,32,0.5);position:absolute;top:-4px;left:-4px;}
+#laser-trail{position:fixed;pointer-events:none;z-index:9998;display:none;}
+.laser-btn{background:none;border:1px solid #2e2b25;border-radius:10px;color:#5a5248;font-family:'DM Mono',monospace;font-size:8px;padding:2px 8px;cursor:pointer;transition:all .15s;letter-spacing:.06em;flex-shrink:0;}
+.laser-btn:hover{border-color:#5a5248;color:#8a7f72;}
+.laser-btn.on{background:rgba(255,32,32,0.1);border-color:rgba(255,80,80,0.4);color:#ff6060;}
+
+@keyframes fspin{to{transform:rotate(360deg)}}
+@keyframes saberflicker{0%,100%{opacity:1}45%{opacity:.85}50%{opacity:.95}}
+
+/* Sidebar */
+#sidebar{background:#211f1b;border-right:1px solid #2e2b25;display:flex;flex-direction:column;width:252px;min-width:252px;transition:width .25s,min-width .25s;overflow:hidden;}
+#sidebar.closed{width:0;min-width:0;}
+.sidebar-header{padding:15px 12px 10px;border-bottom:1px solid #2e2b25;flex-shrink:0;}
+.sidebar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sidebar-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;color:#8a7f72;text-transform:uppercase;}
+.sidebar-count{font-family:'DM Mono',monospace;font-size:10px;color:#4a4540;}
+.search-wrap{position:relative;margin-bottom:7px;}
+.search-input{width:100%;background:#2a2722;border:1px solid #3a3530;border-radius:6px;padding:6px 26px;color:#e8e0d4;font-family:'DM Mono',monospace;font-size:11px;outline:none;}
+.search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.35;pointer-events:none;}
+.search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:#5a5248;cursor:pointer;font-size:15px;line-height:1;padding:0;display:none;}
+.subject-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.spill{border-radius:10px;font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;cursor:pointer;border:1px solid;transition:all .12s;background:transparent;color:#4a4540;border-color:#2e2b25;}
+.spill.active{background:rgba(212,180,120,0.15);border-color:rgba(212,180,120,0.35);color:#d4b478;}
+.new-note-btn{margin:8px 10px 4px;padding:7px 11px;background:rgba(212,180,120,0.07);border:1px dashed rgba(212,180,120,0.25);border-radius:6px;color:#d4b478;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;width:calc(100% - 20px);}
+.new-note-btn:hover{background:rgba(212,180,120,0.14);}
+#note-list{flex:1;overflow-y:auto;}
+.note-item{padding:9px 12px;border-left:2px solid transparent;border-bottom:1px solid #221f1c;cursor:pointer;transition:background .15s;}
+.note-item:hover{background:rgba(255,255,255,0.05);}
+.note-item.active{background:rgba(212,180,120,0.12);border-left-color:#d4b478;}
+.note-item-title{font-size:12px;font-weight:600;color:#4a4540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.note-item-title.has-title{color:#e8e0d4;}
+.note-item-preview{font-size:10px;color:#4a4540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px;}
+.note-item-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.note-dot{width:6px;height:6px;border-radius:50%;}
+.note-time{font-family:'DM Mono',monospace;font-size:8px;color:#333;}
+.exam-badge{background:rgba(212,180,120,0.1);color:#c4a060;border-radius:8px;padding:0 5px;font-size:8px;flex-shrink:0;}
+.no-notes{padding:20px 12px;color:#3a3530;font-family:'DM Mono',monospace;font-size:11px;text-align:center;}
+
+/* Editor */
+#editor-area{flex:1;display:flex;flex-direction:column;min-width:0;background:#1a1814;}
+
+/* Top bar */
+#topbar{display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid #2e2b25;gap:4px;background:rgba(0,0,0,0.18);flex-shrink:0;flex-wrap:wrap;}
 .ib{background:none;border:none;cursor:pointer;opacity:.6;transition:opacity .15s,transform .12s;padding:5px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#e8e0d4;}
 .ib:hover{opacity:1;transform:scale(1.08);}
 .ib.on{opacity:1;color:#d4b478;}
-.tb{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;padding:5px 11px;border-radius:6px;transition:all .15s;letter-spacing:.04em;}
+.tb{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;padding:5px 11px;border-radius:6px;transition:all .15s;letter-spacing:.04em;color:#5a5248;}
+.tb:hover{color:#8a7f72;background:rgba(255,255,255,0.04);}
 .tb.act{background:rgba(212,180,120,0.18);color:#d4b478;}
-.tb:not(.act){color:#5a5248;}.tb:not(.act):hover{color:#8a7f72;background:rgba(255,255,255,0.04);}
+.tb-sep{width:1px;height:13px;background:#2e2b25;margin:0 1px;flex-shrink:0;}
+.ndot{width:10px;height:10px;border-radius:50%;cursor:pointer;flex-shrink:0;border:2px solid transparent;transition:transform .1s;}
+.ndot:hover{transform:scale(1.2);}
+.ndot.sel{border-color:rgba(255,255,255,0.6);}
+.wc-label{font-family:'DM Mono',monospace;font-size:9px;color:#3a3530;}
+.tag-select{background:#2a2722;border:1px solid #3a3530;border-radius:5px;color:#7a7068;font-family:'DM Mono',monospace;font-size:10px;padding:3px 5px;cursor:pointer;outline:none;}
+.ps{width:19px;height:19px;border-radius:50%;cursor:pointer;transition:transform .12s,box-shadow .12s;border:2px solid transparent;flex-shrink:0;}
+.ps:hover{transform:scale(1.25);}
+.ps.sel{border-color:#d4b478;box-shadow:0 0 0 2px rgba(212,180,120,.25);transform:scale(1.18);}
+.pen-label{font-family:'DM Mono',monospace;font-size:10px;color:#5a5248;}
 
-/* Word-style toolbar */
-.word-toolbar{display:flex;align-items:center;gap:2px;padding:5px 10px;border-bottom:1px solid #2e2b25;background:#1e1c18;flex-wrap:wrap;flex-shrink:0;}
+/* Word toolbar */
+#word-toolbar{display:flex;align-items:center;gap:2px;padding:5px 10px;border-bottom:1px solid #2e2b25;background:#1e1c18;flex-wrap:wrap;flex-shrink:0;}
 .wt-btn{background:none;border:1px solid transparent;cursor:pointer;color:#9a9088;font-family:'DM Mono',monospace;font-size:11px;padding:3px 7px;border-radius:4px;transition:all .12s;min-width:28px;text-align:center;display:flex;align-items:center;justify-content:center;}
 .wt-btn:hover{background:rgba(255,255,255,0.07);color:#d4c4a0;border-color:#3a3530;}
 .wt-btn.active{background:rgba(212,180,120,0.18);color:#d4b478;border-color:rgba(212,180,120,0.3);}
 .wt-sep{width:1px;height:20px;background:#2e2b25;margin:0 3px;flex-shrink:0;}
 .wt-select{background:#252220;border:1px solid #3a3530;border-radius:4px;color:#9a9088;font-family:'DM Mono',monospace;font-size:10px;padding:3px 6px;cursor:pointer;outline:none;}
-.wt-select:hover{border-color:#5a5248;}
-.color-swatch{width:18px;height:18px;border-radius:3px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:transform .1s,border-color .1s;}
-.color-swatch:hover{transform:scale(1.15);border-color:#5a5248;}
+.color-popup{position:absolute;top:100%;left:0;margin-top:4px;background:#1e1c18;border:1px solid #3a3530;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:5px;width:164px;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.color-swatch{width:18px;height:18px;border-radius:3px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:transform .1s;}
+.color-swatch:hover{transform:scale(1.15);}
 .color-swatch.sel{border-color:#d4b478;}
 
-/* Pen swatches */
-.ps{width:19px;height:19px;border-radius:50%;cursor:pointer;transition:transform .12s,box-shadow .12s;border:2px solid transparent;flex-shrink:0;}
-.ps:hover{transform:scale(1.25);}.ps.sel{border-color:#d4b478;box-shadow:0 0 0 2px rgba(212,180,120,.25);transform:scale(1.18);}
+/* Content area */
+#content-area{flex:1;display:flex;min-height:0;overflow:hidden;}
 
-/* Note color dots */
-.ndot{width:10px;height:10px;border-radius:50%;cursor:pointer;flex-shrink:0;border:2px solid transparent;transition:transform .1s;}
-.ndot:hover{transform:scale(1.2);}.ndot.sel{border-color:rgba(255,255,255,0.6);}
+/* Empty state */
+#empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#3a3530;}
+.empty-label{font-family:'DM Mono',monospace;font-size:12px;color:#4a4540;}
+.empty-btn{margin-top:6px;padding:7px 18px;background:rgba(212,180,120,0.1);border:1px solid rgba(212,180,120,0.28);border-radius:6px;color:#d4b478;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;}
 
-/* Subject pills */
-.spill{border-radius:10px;font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;cursor:pointer;border:1px solid;transition:all .12s;}
-
-/* Rich text editor */
-.rich-editor{flex:1;outline:none;overflow-y:auto;line-height:1.88;font-size:16px;color:#c8c0b4;caret-color:#d4b478;word-break:break-word;}
-.rich-editor:empty:before{content:attr(data-placeholder);color:#3a3530;pointer-events:none;}
-.rich-editor p{min-height:1.4em;}
-.rich-editor h1{font-size:1.6em;font-weight:700;margin:0.5em 0 0.3em;color:#e8e0d4;}
-.rich-editor h2{font-size:1.25em;font-weight:600;margin:0.4em 0 0.2em;color:#e0d8cc;}
-.rich-editor ul{padding-left:1.4em;margin:0.3em 0;}
-.rich-editor ol{padding-left:1.4em;margin:0.3em 0;}
-.rich-editor li{margin:0.15em 0;}
-.rich-editor hr{border:none;border-top:1px solid #3a3530;margin:1em 0;}
-.rich-editor a{color:#7ab8e0;}
+/* Write pane */
+#write-pane{flex:1;display:flex;flex-direction:column;padding:24px 44px;max-width:720px;width:100%;margin:0 auto;min-height:0;overflow-y:auto;}
+#note-title-input{background:none;border:none;color:#e8e0d4;font-family:'Lora',Georgia,serif;font-size:24px;font-weight:600;width:100%;padding:0 0 10px;border-bottom:1px solid #252220;margin-bottom:14px;caret-color:#d4b478;outline:none;}
+#note-title-input::placeholder{color:#3a3530;}
+.note-meta{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.note-date{font-family:'DM Mono',monospace;font-size:10px;color:#3a3530;}
+.note-tag-badge{background:rgba(212,180,120,0.1);color:#c4a060;border-radius:10px;padding:1px 8px;font-family:'DM Mono',monospace;font-size:9px;}
+#rich-editor{flex:1;outline:none;overflow-y:auto;line-height:1.88;font-size:16px;color:#c8c0b4;caret-color:#d4b478;word-break:break-word;font-family:'Lora',Georgia,serif;min-height:200px;}
+#rich-editor:empty::before{content:"Start writing… highlight text to format it";color:#3a3530;pointer-events:none;}
+#rich-editor p{min-height:1.4em;}
+#rich-editor h1{font-size:1.6em;font-weight:700;margin:.5em 0 .3em;color:#e8e0d4;}
+#rich-editor h2{font-size:1.25em;font-weight:600;margin:.4em 0 .2em;color:#e0d8cc;}
+#rich-editor ul,#rich-editor ol{padding-left:1.4em;margin:.3em 0;}
+#rich-editor li{margin:.15em 0;}
+#rich-editor hr{border:none;border-top:1px solid #3a3530;margin:1em 0;}
 
 /* AI Panel */
-.ai-tool-btn{border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;padding:5px 9px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;border:1px solid;}
-.flashcard{border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.2s;}
+#ai-panel{width:285px;border-left:1px solid #2e2b25;background:#1c1a16;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.ai-panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #2e2b25;}
+.ai-panel-title{font-family:'DM Mono',monospace;font-size:11px;color:#d4b478;letter-spacing:.08em;}
+.ai-close-btn{background:none;border:none;color:#5a5248;cursor:pointer;font-size:18px;line-height:1;padding:0 2px;}
+.ai-tools-row{display:flex;gap:5px;padding:8px 10px;flex-wrap:wrap;border-bottom:1px solid #2e2b25;}
+.ai-tool-btn{border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;padding:5px 9px;cursor:pointer;display:flex;align-items:center;gap:4px;border:1px solid #2e2b25;background:rgba(255,255,255,0.04);color:#8a7f72;transition:all .15s;}
+.ai-tool-btn:hover{background:rgba(212,180,120,0.1);color:#d4b478;}
+.ai-tool-btn.active{background:rgba(212,180,120,0.18);border-color:rgba(212,180,120,0.4);color:#d4b478;}
+#ai-results{flex:1;overflow-y:auto;padding:12px 14px;}
+.ai-loading{display:flex;align-items:center;gap:8px;color:#6a6258;font-family:'DM Mono',monospace;font-size:11px;}
+.ai-spinner{display:inline-block;animation:spin 1s linear infinite;}
+.ai-text{color:#c0b8b0;font-family:'Lora',Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap;}
+.ai-append-btn{margin-top:12px;padding:6px 14px;background:rgba(212,180,120,0.12);border:1px solid rgba(212,180,120,0.3);border-radius:6px;color:#d4b478;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;}
+.flashcard{border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .2s;margin-bottom:8px;}
+.flashcard-label{font-family:'DM Mono',monospace;font-size:9px;color:#5a5248;margin-bottom:4px;}
+.flashcard-text{font-family:'Lora',Georgia,serif;font-size:12px;line-height:1.6;}
+.ai-hint{color:#3a3530;font-family:'DM Mono',monospace;font-size:11px;line-height:1.8;}
+.flip-hint{font-family:'DM Mono',monospace;font-size:10px;color:#5a5248;margin-bottom:8px;}
 
-/* Organizer */
-.organizer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center;}
+/* Draw pane */
+#draw-pane{flex:1;display:flex;flex-direction:column;min-height:0;}
+#draw-toolbar{display:flex;align-items:center;gap:8px;padding:5px 14px;border-bottom:1px solid #2e2b25;background:rgba(0,0,0,0.1);flex-shrink:0;}
+.draw-strokes-label{font-family:'DM Mono',monospace;font-size:10px;color:#5a5248;}
+.draw-btn{background:none;border:1px solid #3a3530;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;cursor:pointer;}
+#canvas-wrap{flex:1;position:relative;background:#0d1018;overflow:hidden;}
+#main-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;}
+#canvas-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#2a2e3a;font-family:'DM Mono',monospace;font-size:12px;pointer-events:none;text-align:center;line-height:2;}
+
+/* Organizer overlay */
+#organizer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center;}
+#organizer-overlay.show{display:flex;}
 .organizer-modal{background:#1c1a16;border:1px solid #2e2b25;border-radius:14px;width:min(600px,93vw);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
-
-/* Color picker popup */
-.color-popup{position:absolute;top:100%;left:0;margin-top:4px;background:#1e1c18;border:1px solid #3a3530;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:5px;width:160px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.org-header{padding:16px 20px;border-bottom:1px solid #2e2b25;display:flex;align-items:center;justify-content:space-between;}
+.org-title{font-family:'Lora',Georgia,serif;font-size:17px;font-weight:600;color:#e8e0d4;}
+.org-subtitle{font-family:'DM Mono',monospace;font-size:10px;color:#5a5248;margin-top:2px;}
+.org-close{background:none;border:none;color:#5a5248;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;}
+.org-pills{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid #2e2b25;flex-wrap:wrap;}
+.org-stats{padding:10px 16px;border-bottom:1px solid #2e2b25;display:flex;gap:8px;flex-wrap:wrap;}
+.org-stat{flex:1 1 110px;background:rgba(255,255,255,0.03);border:1px solid #2e2b25;border-radius:8px;padding:8px 10px;}
+.org-stat-label{font-family:'DM Mono',monospace;font-size:9px;color:#6a6258;margin-bottom:4px;}
+.org-stat-count{font-family:'Lora',Georgia,serif;font-size:18px;font-weight:600;color:#d4b478;}
+.org-stat-bar-bg{margin-top:4px;height:3px;background:#2a2722;border-radius:3px;}
+.org-stat-bar{height:3px;background:#d4b478;border-radius:3px;}
+#org-list{flex:1;overflow-y:auto;}
+.org-item{padding:10px 20px;border-bottom:1px solid #252220;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;}
+.org-item:hover{background:rgba(255,255,255,0.04);}
+.org-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.org-item-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.org-item-preview{font-size:10px;color:#5a5248;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'DM Mono',monospace;}
+.org-badge{background:rgba(212,180,120,0.1);color:#d4b478;border-radius:10px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:9px;flex-shrink:0;}
+.org-time{font-family:'DM Mono',monospace;font-size:9px;color:#3a3530;flex-shrink:0;}
+.org-empty{padding:24px 20px;color:#4a4540;font-family:'DM Mono',monospace;font-size:11px;text-align:center;}
 
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-.fi{animation:fi .2s ease;}
-.new-note-btn{margin:8px 10px 4px;padding:7px 11px;background:rgba(212,180,120,0.07);border:1px dashed rgba(212,180,120,0.25);border-radius:6px;color:#d4b478;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;width:calc(100% - 20px);}
-.new-note-btn:hover{background:rgba(212,180,120,0.14);}
-input,select,textarea{outline:none;font-family:inherit;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .2s ease;}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect,useRef,useCallback}=React;
 
-// ── Constants ────────────────────────────────────────────────────────────────
+<div id="root-wrap">
+<div id="safe-top"></div>
+
+<!-- Fidget bar -->
+<div id="fidget-bar">
+
+  <!-- ⚔️ Star Wars Lightsaber (vertical stick) -->
+  <div id="saber-wrap" title="Ignite">
+    <div id="saber-blade">
+      <div id="saber-blade-glow"></div>
+      <div id="saber-blade-inner"></div>
+      <div id="saber-blade-core"></div>
+    </div>
+    <div id="saber-guard"></div>
+    <div id="saber-hilt"></div>
+    <div id="saber-pommel"></div>
+  </div>
+  <div id="saber-colors">
+    <div class="saber-dot sel" data-color="#00e5ff" data-glow="rgba(0,229,255,0.75)" style="background:#00e5ff;" title="Blue"></div>
+    <div class="saber-dot" data-color="#ff2020" data-glow="rgba(255,32,32,0.75)" style="background:#ff2020;" title="Red (Sith)"></div>
+    <div class="saber-dot" data-color="#30ff60" data-glow="rgba(48,255,96,0.75)" style="background:#30ff60;" title="Green"></div>
+    <div class="saber-dot" data-color="#cc60ff" data-glow="rgba(200,96,255,0.75)" style="background:#cc60ff;" title="Purple (Mace Windu)"></div>
+    <div class="saber-dot" data-color="#ffdd40" data-glow="rgba(255,220,64,0.75)" style="background:#ffdd40;" title="Yellow (Temple Guard)"></div>
+  </div>
+  <span id="saber-hum">· · ·</span>
+
+  <div class="fb-sep"></div>
+
+  <!-- 🏃 Manual Treadmill -->
+  <div id="treadmill-wrap">
+    <div id="treadmill-frame">
+      <div id="treadmill-belt"></div>
+    </div>
+    <span id="treadmill-speed">··</span>
+  </div>
+
+  <div class="fb-sep"></div>
+
+  <!-- ⭕ Haptic rings -->
+  <div id="rings-wrap">
+    <div class="fidget-ring c0" title="Haptic tap"><div class="fidget-dot"></div></div>
+    <div class="fidget-ring c1" title="Haptic tap"><div class="fidget-dot"></div></div>
+    <div class="fidget-ring c2" title="Haptic tap"><div class="fidget-dot"></div></div>
+  </div>
+
+  <div class="fb-sep"></div>
+
+  <!-- 🔴 Laser -->
+  <button class="laser-btn" id="laser-toggle">🔴 laser</button>
+
+</div>
+
+<!-- Laser cursor overlay -->
+<div id="laser-cursor"><div id="laser-dot"></div></div>
+<canvas id="laser-trail"></canvas>
+
+<div id="app">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-top">
+        <span class="sidebar-label">Notes</span>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="sidebar-count" id="note-count">0</span>
+          <button class="ib" id="organizer-btn" title="Exam Organizer" style="font-size:13px;opacity:.7;">📋</button>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="search-input" class="search-input" placeholder="Search all notes…"/>
+        <button class="search-clear" id="search-clear">×</button>
+      </div>
+      <div class="subject-pills" id="subject-pills"></div>
+    </div>
+    <button class="new-note-btn" id="new-note-btn">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>New note
+    </button>
+    <div id="note-list"></div>
+  </div>
+
+  <!-- Editor -->
+  <div id="editor-area">
+    <!-- Top bar -->
+    <div id="topbar">
+      <button class="ib" id="toggle-sidebar-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+      </button>
+      <div class="tb-sep" id="tab-sep" style="display:none;"></div>
+      <button class="tb act" id="tab-write" style="display:none;">✏︎ Write</button>
+      <button class="tb" id="tab-draw" style="display:none;">⊹ Draw</button>
+      <div style="flex:1;"></div>
+      <!-- Write tools -->
+      <button class="ib" id="voice-btn" style="display:none;color:#6a6258;" title="Voice input">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+      </button>
+      <button class="ib" id="ai-btn" style="display:none;" title="AI Tools">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+      </button>
+      <button class="ib" id="pdf-btn" style="display:none;color:#6a6258;" title="Export PDF">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="tb-sep" id="write-sep1" style="display:none;"></div>
+      <div id="note-color-dots" style="display:none;display:flex;gap:3px;"></div>
+      <div class="tb-sep" id="write-sep2" style="display:none;"></div>
+      <span class="wc-label" id="wc-label" style="display:none;">0w</span>
+      <select class="tag-select" id="tag-select" style="display:none;">
+        <option value="">Tag…</option>
+      </select>
+      <!-- Draw tools -->
+      <div id="pen-colors" style="display:none;display:flex;gap:6px;align-items:center;"></div>
+      <span class="pen-label" id="pen-label" style="display:none;margin-left:4px;"></span>
+      <!-- Delete -->
+      <div class="tb-sep" id="del-sep" style="display:none;"></div>
+      <button class="ib" id="delete-btn" style="display:none;color:#e05858;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>
+
+    <!-- Word toolbar -->
+    <div id="word-toolbar" style="display:none;">
+      <select class="wt-select" id="font-select" style="width:90px;"></select>
+      <select class="wt-select" id="size-select" style="width:52px;"></select>
+      <div class="wt-sep"></div>
+      <button class="wt-btn" id="btn-bold" title="Bold"><strong>B</strong></button>
+      <button class="wt-btn" id="btn-italic" title="Italic"><em style="font-style:italic;">I</em></button>
+      <button class="wt-btn" id="btn-underline" title="Underline"><span style="text-decoration:underline;">U</span></button>
+      <button class="wt-btn" id="btn-strike" title="Strikethrough"><span style="text-decoration:line-through;">S</span></button>
+      <div class="wt-sep"></div>
+      <div style="position:relative;">
+        <button class="wt-btn" id="btn-text-color" title="Text Color">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+            <span id="tc-letter" style="font-size:12px;font-weight:700;">A</span>
+            <div id="tc-bar" style="width:14px;height:3px;border-radius:1px;background:#e8e0d4;"></div>
+          </div>
+        </button>
+        <div class="color-popup" id="text-color-popup" style="display:none;"></div>
+      </div>
+      <div style="position:relative;">
+        <button class="wt-btn" id="btn-highlight" title="Highlight">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+            <span style="font-size:11px;">ab</span>
+            <div id="hl-bar" style="width:14px;height:3px;border-radius:1px;background:#9a9088;"></div>
+          </div>
+        </button>
+        <div class="color-popup" id="highlight-popup" style="display:none;"></div>
+      </div>
+      <div class="wt-sep"></div>
+      <button class="wt-btn" id="btn-left" title="Align Left">
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="wt-btn" id="btn-center" title="Center">
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="wt-btn" id="btn-right" title="Align Right">
+        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <div class="wt-sep"></div>
+      <button class="wt-btn" id="btn-ul" title="Bullet List">
+        <svg width="13" height="11" viewBox="0 0 14 12"><circle cx="1.5" cy="2" r="1.5" fill="currentColor"/><line x1="4" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/><circle cx="1.5" cy="6" r="1.5" fill="currentColor"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" stroke-width="1.5"/><circle cx="1.5" cy="10" r="1.5" fill="currentColor"/><line x1="4" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="wt-btn" id="btn-ol" title="Numbered List">
+        <svg width="13" height="11" viewBox="0 0 14 12"><text x="0" y="3.5" font-size="4" fill="currentColor" font-family="monospace">1.</text><line x1="5" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/><text x="0" y="7.5" font-size="4" fill="currentColor" font-family="monospace">2.</text><line x1="5" y1="6" x2="14" y2="6" stroke="currentColor" stroke-width="1.5"/><text x="0" y="11.5" font-size="4" fill="currentColor" font-family="monospace">3.</text><line x1="5" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <div class="wt-sep"></div>
+      <button class="wt-btn" id="btn-h1" title="Heading 1">H1</button>
+      <button class="wt-btn" id="btn-h2" title="Heading 2">H2</button>
+      <div class="wt-sep"></div>
+      <button class="wt-btn" id="btn-clear-fmt" title="Clear Formatting">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><line x1="3" y1="21" x2="21" y2="3" stroke="currentColor" stroke-width="1.5" opacity="0.5"/></svg>
+      </button>
+      <button class="wt-btn" id="btn-hr" title="Divider">—</button>
+    </div>
+
+    <!-- Content area -->
+    <div id="content-area">
+      <!-- Empty state -->
+      <div id="empty-state">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="empty-label" id="empty-label">Create your first note</span>
+        <button class="empty-btn" id="empty-new-btn" style="display:none;">+ New note</button>
+      </div>
+
+      <!-- Write pane -->
+      <div id="write-pane" style="display:none;">
+        <input id="note-title-input" placeholder="Title"/>
+        <div class="note-meta">
+          <span class="note-date" id="note-date"></span>
+          <span class="note-tag-badge" id="note-tag-display" style="display:none;"></span>
+        </div>
+        <div id="rich-editor" contenteditable="true" spellcheck="true"></div>
+      </div>
+
+      <!-- AI panel -->
+      <div id="ai-panel" style="display:none;">
+        <div class="ai-panel-header">
+          <span class="ai-panel-title">✦ AI Tools</span>
+          <button class="ai-close-btn" id="ai-close-btn">×</button>
+        </div>
+        <div class="ai-tools-row" id="ai-tools-row"></div>
+        <div id="ai-results"><div class="ai-hint">Select a tool above to get AI-powered help with your notes.</div></div>
+      </div>
+
+      <!-- Draw pane -->
+      <div id="draw-pane" style="display:none;">
+        <div id="draw-toolbar">
+          <span class="draw-strokes-label" id="stroke-count">0 strokes</span>
+          <div style="flex:1;"></div>
+          <button class="draw-btn" id="undo-btn" style="color:#3a3530;" disabled>↩ Undo</button>
+          <button class="draw-btn" id="clear-btn" style="color:#3a3530;" disabled>Clear</button>
+        </div>
+        <div id="canvas-wrap">
+          <canvas id="main-canvas"></canvas>
+          <div id="canvas-hint">Draw graphs, diagrams,<br/>or freehand notes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- end root-wrap -->
+
+<!-- Organizer overlay -->
+<div id="organizer-overlay">
+  <div class="organizer-modal">
+    <div class="org-header">
+      <div>
+        <div class="org-title">Exam Organizer</div>
+        <div class="org-subtitle" id="org-subtitle">0 tagged notes</div>
+      </div>
+      <button class="org-close" id="org-close-btn">×</button>
+    </div>
+    <div class="org-pills" id="org-pills"></div>
+    <div class="org-stats" id="org-stats"></div>
+    <div id="org-list"></div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
 const NOTE_COLORS=["#f9e4b7","#d4f1c4","#c4e1f1","#f1c4d4","#e4c4f1","#f1e4c4"];
 const PEN_COLORS=[
   {id:"black",label:"Black",hex:"#1a1a1a"},
@@ -110,671 +587,1020 @@ const FONT_FACES=[
   {label:"Slab",val:"Roboto Slab, Georgia, serif"},
 ];
 const FONT_SIZES=["10","11","12","14","16","18","20","24","28","32","36","48"];
-const TEXT_COLORS_PALETTE=[
-  "#e8e0d4","#ffffff","#d4b478","#e05858","#2060d0","#6dd4a0",
-  "#e07090","#b090e0","#7ab8e0","#f0a050","#50c8a0","#a0c040",
-  "#888888","#555555","#222222","#000000",
-];
-const HIGHLIGHT_COLORS=[
-  "#fff176","#ffcc80","#ef9a9a","#80cbc4","#a5d6a7","#90caf9",
-  "#ce93d8","#f48fb1","#ffe0b2","#b2dfdb","transparent",
-];
+const TEXT_COLORS=["#e8e0d4","#ffffff","#d4b478","#e05858","#2060d0","#6dd4a0","#e07090","#b090e0","#7ab8e0","#f0a050","#50c8a0","#a0c040","#888888","#555555","#222222","#000000"];
+const HIGHLIGHT_COLORS=["#fff176","#ffcc80","#ef9a9a","#80cbc4","#a5d6a7","#90caf9","#ce93d8","#f48fb1","#ffe0b2","#b2dfdb","transparent"];
 
-const fmtDate=ts=>new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-const timeAgo=ts=>{
+// ── State ──────────────────────────────────────────────────────────────────
+let notes=[];
+let activeId=null;
+let tab="text";
+let penColor="#1a1a1a";
+let search="";
+let subjectFilter="All";
+let showAI=false;
+let strokes=[];
+let strokesRef=[];
+let isDrawing=false;
+let currentStroke=null;
+let savedSelection=null;
+let activeTextColor="#e8e0d4";
+let activeHighlight="transparent";
+let aiMode=null;
+let flashCards=[];
+let flippedCards={};
+let orgFilter="All";
+let saveTimer=null;
+
+// ── Load/Save ──────────────────────────────────────────────────────────────
+function loadNotes(){
+  try{notes=JSON.parse(localStorage.getItem("notes_v4")||"[]");}catch{notes=[];}
+}
+function saveNotes(){
+  localStorage.setItem("notes_v4",JSON.stringify(notes));
+}
+function fmtDate(ts){return new Date(ts).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});}
+function timeAgo(ts){
   const d=Date.now()-ts,m=Math.floor(d/60000);
-  if(m<1)return"just now";if(m<60)return`${m}m ago`;
-  const h=Math.floor(m/60);if(h<24)return`${h}h ago`;
+  if(m<1)return"just now";if(m<60)return m+"m ago";
+  const h=Math.floor(m/60);if(h<24)return h+"h ago";
   return fmtDate(ts);
-};
+}
+function stripHtml(html){const t=document.createElement("div");t.innerHTML=html||"";return t.textContent||"";}
+function getWordCount(html){return stripHtml(html).trim().split(/\s+/).filter(Boolean).length;}
 
-async function callAI(system,user,maxTokens=900){
+// ── AI ─────────────────────────────────────────────────────────────────────
+async function callAI(system,user,maxTokens){
+  maxTokens=maxTokens||900;
   try{
     const r=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system,messages:[{role:"user",content:user}]})
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system:system,messages:[{role:"user",content:user}]})
     });
     const d=await r.json();
-    return d.content?.map(b=>b.text||"").join("").trim()||"";
-  }catch{return"";}
+    return(d.content||[]).map(function(b){return b.text||"";}).join("").trim();
+  }catch(e){return"";}
 }
 
-// ── Word-like Rich Text Toolbar ──────────────────────────────────────────────
-function WordToolbar({editorRef,onSave}){
-  const [bold,setBold]=useState(false);
-  const [italic,setItalic]=useState(false);
-  const [underline,setUnderline]=useState(false);
-  const [strikethrough,setStrikethrough]=useState(false);
-  const [showTextColor,setShowTextColor]=useState(false);
-  const [showHighlight,setShowHighlight]=useState(false);
-  const [activeTextColor,setActiveTextColor]=useState("#e8e0d4");
-  const [activeHighlight,setActiveHighlight]=useState("transparent");
-  const [curFont,setCurFont]=useState("Lora, Georgia, serif");
-  const [curSize,setCurSize]=useState("16");
-  const savedSel=useRef(null);
+// ── DOM Helpers ────────────────────────────────────────────────────────────
+function $(id){return document.getElementById(id);}
+function show(el){if(typeof el==="string")el=$(el);if(el)el.style.display="";}
+function hide(el){if(typeof el==="string")el=$(el);if(el)el.style.display="none";}
+function showFlex(el){if(typeof el==="string")el=$(el);if(el)el.style.display="flex";}
 
-  // Update toolbar state on selection change
-  useEffect(()=>{
-    const update=()=>{
-      setBold(document.queryCommandState("bold"));
-      setItalic(document.queryCommandState("italic"));
-      setUnderline(document.queryCommandState("underline"));
-      setStrikethrough(document.queryCommandState("strikethrough"));
-    };
-    document.addEventListener("selectionchange",update);
-    return()=>document.removeEventListener("selectionchange",update);
-  },[]);
+// ── Init toolbar dropdowns ─────────────────────────────────────────────────
+function initToolbar(){
+  // Font select
+  const fs=$("font-select");
+  FONT_FACES.forEach(function(f){
+    const o=document.createElement("option");
+    o.value=f.val;o.textContent=f.label;fs.appendChild(o);
+  });
+  fs.value=FONT_FACES[0].val;
 
-  function saveSelection(){
-    const sel=window.getSelection();
-    if(sel&&sel.rangeCount>0) savedSel.current=sel.getRangeAt(0).cloneRange();
-  }
-  function restoreSelection(){
-    if(!savedSel.current)return false;
-    const sel=window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(savedSel.current);
-    return true;
-  }
-  function exec(cmd,val=null){
-    editorRef.current?.focus();
-    document.execCommand(cmd,false,val);
-    setTimeout(onSave,50);
-  }
-  function applyTextColor(color){
-    restoreSelection();
-    exec("foreColor",color);
-    setActiveTextColor(color);
-    setShowTextColor(false);
-  }
-  function applyHighlight(color){
-    restoreSelection();
-    if(color==="transparent"){exec("hiliteColor","transparent");}
-    else exec("hiliteColor",color);
-    setActiveHighlight(color);
-    setShowHighlight(false);
-  }
-  function applyFont(val){
-    // Use CSS approach via span for font-family
-    restoreSelection();
-    const sel=window.getSelection();
-    if(!sel||sel.isCollapsed)return;
-    exec("fontName",val.split(",")[0].trim());
-    setTimeout(onSave,50);
-    setCurFont(val);
-  }
-  function applySize(size){
-    restoreSelection();
-    // Map px size to execCommand fontSize (1-7)
-    const sz=parseInt(size);
-    const fsMap=[[10,1],[13,2],[16,3],[18,4],[24,5],[32,6],[48,7]];
-    let fs=3;
-    for(const[px,f] of fsMap){if(sz<=px){fs=f;break;}else fs=7;}
-    exec("fontSize",fs);
-    // Override with inline style for exact size
-    const spans=editorRef.current?.querySelectorAll("font[size]");
-    spans?.forEach(s=>{s.style.fontSize=size+"px";});
-    setCurSize(size);
-    setTimeout(onSave,50);
-  }
-  function insertList(type){
-    exec(type==="ul"?"insertUnorderedList":"insertOrderedList");
-  }
-  function insertHR(){
-    exec("insertHTML","<hr/>");
-  }
-  function clearFormat(){
-    restoreSelection();
-    exec("removeFormat");
-  }
-  function alignText(dir){
-    const cmds={left:"justifyLeft",center:"justifyCenter",right:"justifyRight"};
-    exec(cmds[dir]);
-  }
+  // Size select
+  const ss=$("size-select");
+  FONT_SIZES.forEach(function(s){
+    const o=document.createElement("option");
+    o.value=s;o.textContent=s;ss.appendChild(o);
+  });
+  ss.value="16";
 
-  return(
-    <div className="word-toolbar" onMouseDown={e=>{saveSelection();}}>
-      {/* Font face */}
-      <select className="wt-select" style={{width:90}} value={curFont} onChange={e=>{setCurFont(e.target.value);applyFont(e.target.value);}}>
-        {FONT_FACES.map(f=><option key={f.val} value={f.val}>{f.label}</option>)}
-      </select>
+  // Tag select
+  const ts=$("tag-select");
+  EXAM_SUBJECTS.forEach(function(s){
+    const o=document.createElement("option");
+    o.value=s;o.textContent=s;ts.appendChild(o);
+  });
 
-      {/* Font size */}
-      <select className="wt-select" style={{width:52}} value={curSize} onChange={e=>{setCurSize(e.target.value);applySize(e.target.value);}}>
-        {FONT_SIZES.map(s=><option key={s} value={s}>{s}</option>)}
-      </select>
-
-      <div className="wt-sep"/>
-
-      {/* Bold */}
-      <button className={`wt-btn ${bold?"active":""}`} title="Bold (Ctrl+B)" onMouseDown={e=>{e.preventDefault();exec("bold");}}>
-        <strong>B</strong>
-      </button>
-      {/* Italic */}
-      <button className={`wt-btn ${italic?"active":""}`} title="Italic (Ctrl+I)" onMouseDown={e=>{e.preventDefault();exec("italic");}}>
-        <em style={{fontStyle:"italic"}}>I</em>
-      </button>
-      {/* Underline */}
-      <button className={`wt-btn ${underline?"active":""}`} title="Underline (Ctrl+U)" onMouseDown={e=>{e.preventDefault();exec("underline");}}>
-        <span style={{textDecoration:"underline"}}>U</span>
-      </button>
-      {/* Strikethrough */}
-      <button className={`wt-btn ${strikethrough?"active":""}`} title="Strikethrough" onMouseDown={e=>{e.preventDefault();exec("strikethrough");}}>
-        <span style={{textDecoration:"line-through"}}>S</span>
-      </button>
-
-      <div className="wt-sep"/>
-
-      {/* Text color */}
-      <div style={{position:"relative"}}>
-        <button className="wt-btn" title="Text Color" onMouseDown={e=>{e.preventDefault();saveSelection();setShowTextColor(v=>!v);setShowHighlight(false);}}>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-            <span style={{fontSize:12,fontWeight:700,color:activeTextColor==="transparent"?"#9a9088":activeTextColor}}>A</span>
-            <div style={{width:14,height:3,background:activeTextColor==="transparent"?"#9a9088":activeTextColor,borderRadius:1}}/>
-          </div>
-        </button>
-        {showTextColor&&(
-          <div className="color-popup">
-            {TEXT_COLORS_PALETTE.map(c=>(
-              <div key={c} className={`color-swatch ${activeTextColor===c?"sel":""}`} onClick={()=>applyTextColor(c)}
-                style={{background:c,border:c==="#e8e0d4"||c==="#ffffff"?"1px solid #3a3530":"1px solid transparent"}}/>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Highlight color */}
-      <div style={{position:"relative"}}>
-        <button className="wt-btn" title="Highlight Color" onMouseDown={e=>{e.preventDefault();saveSelection();setShowHighlight(v=>!v);setShowTextColor(false);}}>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-            <span style={{fontSize:11}}>ab</span>
-            <div style={{width:14,height:3,background:activeHighlight==="transparent"?"#9a9088":activeHighlight,borderRadius:1,border:activeHighlight==="transparent"?"1px dashed #5a5248":"none"}}/>
-          </div>
-        </button>
-        {showHighlight&&(
-          <div className="color-popup">
-            {HIGHLIGHT_COLORS.map(c=>(
-              <div key={c} className={`color-swatch ${activeHighlight===c?"sel":""}`} onClick={()=>applyHighlight(c)}
-                style={{background:c==="transparent"?"none":"c",border:"1px solid #3a3530",position:"relative",overflow:"hidden",background:c==="transparent"?"repeating-linear-gradient(45deg,#3a3530 0,#3a3530 2px,transparent 0,transparent 50%) 0/6px 6px":"c"}}
-              >
-                {c!=="transparent"&&<div style={{width:"100%",height:"100%",background:c,borderRadius:1}}/>}
-                {c==="transparent"&&<span style={{fontSize:9,color:"#8a7f72",fontFamily:"monospace",lineHeight:"16px",display:"block",textAlign:"center"}}>✕</span>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="wt-sep"/>
-
-      {/* Alignment */}
-      <button className="wt-btn" title="Align Left" onMouseDown={e=>{e.preventDefault();alignText("left");}}>
-        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
-      </button>
-      <button className="wt-btn" title="Center" onMouseDown={e=>{e.preventDefault();alignText("center");}}>
-        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="2" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
-      </button>
-      <button className="wt-btn" title="Align Right" onMouseDown={e=>{e.preventDefault();alignText("right");}}>
-        <svg width="13" height="11" viewBox="0 0 14 12"><line x1="0" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
-      </button>
-
-      <div className="wt-sep"/>
-
-      {/* Lists */}
-      <button className="wt-btn" title="Bullet List" onMouseDown={e=>{e.preventDefault();insertList("ul");}}>
-        <svg width="13" height="11" viewBox="0 0 14 12"><circle cx="1.5" cy="2" r="1.5" fill="currentColor"/><line x1="4" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><circle cx="1.5" cy="6" r="1.5" fill="currentColor"/><line x1="4" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><circle cx="1.5" cy="10" r="1.5" fill="currentColor"/><line x1="4" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
-      </button>
-      <button className="wt-btn" title="Numbered List" onMouseDown={e=>{e.preventDefault();insertList("ol");}}>
-        <svg width="13" height="11" viewBox="0 0 14 12"><text x="0" y="3.5" fontSize="4" fill="currentColor" fontFamily="monospace">1.</text><line x1="5" y1="2" x2="14" y2="2" stroke="currentColor" strokeWidth="1.5"/><text x="0" y="7.5" fontSize="4" fill="currentColor" fontFamily="monospace">2.</text><line x1="5" y1="6" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5"/><text x="0" y="11.5" fontSize="4" fill="currentColor" fontFamily="monospace">3.</text><line x1="5" y1="10" x2="14" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg>
-      </button>
-
-      <div className="wt-sep"/>
-
-      {/* Heading shortcuts */}
-      <button className="wt-btn" title="Heading 1" onMouseDown={e=>{e.preventDefault();exec("formatBlock","<h1>");}}>H1</button>
-      <button className="wt-btn" title="Heading 2" onMouseDown={e=>{e.preventDefault();exec("formatBlock","<h2>");}}>H2</button>
-
-      <div className="wt-sep"/>
-
-      {/* Clear formatting */}
-      <button className="wt-btn" title="Clear Formatting" onMouseDown={e=>{e.preventDefault();clearFormat();}}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7-7-7"/><path d="M5 19h14"/><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/></svg>
-      </button>
-
-      {/* Divider */}
-      <button className="wt-btn" title="Insert Divider" onMouseDown={e=>{e.preventDefault();insertHR();}}>—</button>
-    </div>
-  );
-}
-
-// ── Drawing Canvas ──────────────────────────────────────────────────────────
-function DrawingCanvas({penColor,savedStrokes,onSave}){
-  const cvRef=useRef(null);
-  const [strokes,setStrokes]=useState(savedStrokes||[]);
-  const curRef=useRef(null),drawRef=useRef(false),sRef=useRef(savedStrokes||[]);
-  const tmr=useRef(null);
-  const sched=s=>{clearTimeout(tmr.current);tmr.current=setTimeout(()=>onSave(s),700);};
-
-  const render=useCallback((list,live=null)=>{
-    const cv=cvRef.current;if(!cv)return;
-    const ctx=cv.getContext("2d");
-    ctx.clearRect(0,0,cv.width,cv.height);
-    ctx.strokeStyle="rgba(80,110,160,0.12)";ctx.lineWidth=0.5;
-    for(let x=0;x<=cv.width;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke();}
-    for(let y=0;y<=cv.height;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke();}
-    const ax=Math.round(cv.width*0.12),ay=Math.round(cv.height*0.86);
-    ctx.strokeStyle="rgba(90,120,180,0.28)";ctx.lineWidth=1.2;
-    ctx.beginPath();ctx.moveTo(ax,12);ctx.lineTo(ax,cv.height-12);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(12,ay);ctx.lineTo(cv.width-12,ay);ctx.stroke();
-    ctx.fillStyle="rgba(90,120,180,0.28)";
-    ctx.beginPath();ctx.moveTo(ax,6);ctx.lineTo(ax-4,18);ctx.lineTo(ax+4,18);ctx.fill();
-    ctx.beginPath();ctx.moveTo(cv.width-6,ay);ctx.lineTo(cv.width-18,ay-4);ctx.lineTo(cv.width-18,ay+4);ctx.fill();
-    const all=live?[...list,live]:list;
-    all.forEach(s=>{
-      if(!s.points||s.points.length<2)return;
-      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=2.2;
-      if(s.color==="#a8b4c0"){
-        const g=ctx.createLinearGradient(s.points[0].x,s.points[0].y,s.points[s.points.length-1].x,s.points[s.points.length-1].y);
-        g.addColorStop(0,"#d0dce8");g.addColorStop(0.45,"#8a9eae");g.addColorStop(1,"#c2ceda");
-        ctx.strokeStyle=g;
-      }else ctx.strokeStyle=s.color;
-      ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
-      for(let i=1;i<s.points.length-1;i++){
-        const mx=(s.points[i].x+s.points[i+1].x)/2,my=(s.points[i].y+s.points[i+1].y)/2;
-        ctx.quadraticCurveTo(s.points[i].x,s.points[i].y,mx,my);
-      }
-      ctx.lineTo(s.points[s.points.length-1].x,s.points[s.points.length-1].y);
-      ctx.stroke();ctx.restore();
+  // Note color dots
+  const ncd=$("note-color-dots");
+  NOTE_COLORS.forEach(function(c){
+    const d=document.createElement("div");
+    d.className="ndot";d.style.background=c;d.dataset.color=c;
+    d.addEventListener("click",function(){
+      if(!activeId)return;
+      const n=notes.find(function(n){return n.id===activeId;});
+      if(n){n.color=c;saveNotes();renderNoteList();updateNoteColorDots();}
     });
-  },[]);
+    ncd.appendChild(d);
+  });
 
-  useEffect(()=>{
-    const cv=cvRef.current;if(!cv)return;
-    const resize=()=>{const r=cv.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;cv.width=r.width;cv.height=r.height;render(sRef.current);};
-    resize();const ro=new ResizeObserver(resize);ro.observe(cv.parentElement);return()=>ro.disconnect();
-  },[render]);
-  useEffect(()=>{render(strokes);},[strokes,render]);
+  // Pen swatches
+  const pc=$("pen-colors");
+  PEN_COLORS.forEach(function(p){
+    const d=document.createElement("div");
+    d.className="ps";d.title=p.label;d.dataset.hex=p.hex;
+    if(p.id==="metallic"){d.style.background="linear-gradient(135deg,#d0dce8 0%,#8a9eae 50%,#c2ceda 100%)";}
+    else{d.style.background=p.hex;}
+    if(p.id==="white"){d.style.boxShadow="inset 0 0 0 1px #4a4540";}
+    d.addEventListener("click",function(){
+      penColor=p.hex;
+      $("pen-label").textContent=p.label;
+      document.querySelectorAll(".ps").forEach(function(el){el.classList.remove("sel");});
+      d.classList.add("sel");
+    });
+    pc.appendChild(d);
+  });
+  pc.firstChild.classList.add("sel");
+  $("pen-label").textContent="Black";
 
-  const getPos=e=>{const cv=cvRef.current,r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};};
-  const onStart=e=>{e.preventDefault();drawRef.current=true;curRef.current={color:penColor,points:[getPos(e)]};};
-  const onMove=e=>{e.preventDefault();if(!drawRef.current||!curRef.current)return;curRef.current={...curRef.current,points:[...curRef.current.points,getPos(e)]};render(sRef.current,curRef.current);};
-  const onEnd=()=>{if(!drawRef.current)return;drawRef.current=false;const s=curRef.current;if(s&&s.points.length>1){const n=[...sRef.current,s];sRef.current=n;setStrokes(n);sched(n);}curRef.current=null;};
-  const undo=()=>{const n=sRef.current.slice(0,-1);sRef.current=n;setStrokes(n);sched(n);};
-  const clear=()=>{sRef.current=[];setStrokes([]);sched([]);};
+  // Subject pills sidebar
+  const sp=$("subject-pills");
+  ["All"].concat(EXAM_SUBJECTS).forEach(function(s){
+    const b=document.createElement("button");
+    b.className="spill"+(s==="All"?" active":"");
+    b.textContent=s;b.dataset.subject=s;
+    b.addEventListener("click",function(){
+      subjectFilter=s;
+      document.querySelectorAll("#subject-pills .spill").forEach(function(el){el.classList.remove("active");});
+      b.classList.add("active");
+      renderNoteList();
+    });
+    sp.appendChild(b);
+  });
 
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 14px",borderBottom:"1px solid #2e2b25",background:"rgba(0,0,0,0.1)",flexShrink:0}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248"}}>{strokes.length} stroke{strokes.length!==1?"s":""}</span>
-        <div style={{flex:1}}/>
-        <button onClick={undo} disabled={!strokes.length} style={{background:"none",border:"1px solid #3a3530",borderRadius:4,color:strokes.length?"#8a7f72":"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"2px 8px",cursor:strokes.length?"pointer":"default"}}>↩ Undo</button>
-        <button onClick={clear} disabled={!strokes.length} style={{background:"none",border:"1px solid #3a3530",borderRadius:4,color:strokes.length?"#e05858":"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"2px 8px",cursor:strokes.length?"pointer":"default"}}>Clear</button>
-      </div>
-      <div style={{flex:1,position:"relative",background:"#0d1018",cursor:"crosshair",overflow:"hidden"}}>
-        <canvas ref={cvRef} onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onEnd} onMouseLeave={onEnd} onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd} style={{display:"block",width:"100%",height:"100%",touchAction:"none"}}/>
-        {!strokes.length&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",color:"#2a2e3a",fontFamily:"'DM Mono',monospace",fontSize:12,pointerEvents:"none",textAlign:"center",lineHeight:2}}>Draw graphs, diagrams,<br/>or freehand notes</div>}
-      </div>
-    </div>
-  );
-}
+  // Text color popup
+  const tcp=$("text-color-popup");
+  TEXT_COLORS.forEach(function(c){
+    const d=document.createElement("div");
+    d.className="color-swatch"+(c===activeTextColor?" sel":"");
+    d.style.background=c;
+    if(c==="#e8e0d4"||c==="#ffffff")d.style.border="1px solid #3a3530";
+    d.addEventListener("click",function(){
+      restoreSelection();
+      document.execCommand("foreColor",false,c);
+      activeTextColor=c;
+      $("tc-letter").style.color=c;
+      $("tc-bar").style.background=c;
+      hide("text-color-popup");
+      saveEditorContent();
+    });
+    tcp.appendChild(d);
+  });
 
-// ── AI Panel ────────────────────────────────────────────────────────────────
-function AIPanel({note,onClose,onApply,onTitleSuggest}){
-  const [mode,setMode]=useState(null);
-  const [result,setResult]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [cards,setCards]=useState(null);
-  const [flipped,setFlipped]=useState({});
-
-  async function run(m){
-    setMode(m);setResult("");setCards(null);setLoading(true);
-    // Strip HTML for AI
-    const tmp=document.createElement("div");tmp.innerHTML=note.body||"";
-    const content=`Title: ${note.title||"Untitled"}\n\n${tmp.textContent}`;
-    if(m==="summarize"){const r=await callAI("You are a concise study assistant. Summarize the note in 3-5 bullet points. Use • for bullets. Be brief and clear.",content);setResult(r);}
-    else if(m==="explain"){const r=await callAI("You are a helpful tutor. Expand and explain the key concepts in this note in simple terms. Add context that helps a student understand.",content);setResult(r);}
-    else if(m==="flashcards"){
-      const r=await callAI('Create exactly 5 flashcard question-answer pairs from this note. Return ONLY valid JSON array: [{"q":"question","a":"answer"},...]. No markdown, no extra text.',content,800);
-      try{const clean=r.replace(/```json|```/g,"").trim();setCards(JSON.parse(clean));}
-      catch{setCards([{q:"Could not parse",a:"Try again"}]);}
-    }else if(m==="title"){
-      const r=await callAI("Suggest a short, clear title (max 6 words) for this note. Return ONLY the title, no quotes.",content,100);
-      onTitleSuggest(r.trim());onClose();
-    }else if(m==="quiz"){
-      const r=await callAI("Create a 5-question multiple choice quiz from this note. Format: Q1. [question]\na) ...\nb) ...\nc) ...\nd) ...\nAnswer: [letter]\n\nRepeat for each question.",content,900);
-      setResult(r);
+  // Highlight popup
+  const hp=$("highlight-popup");
+  HIGHLIGHT_COLORS.forEach(function(c){
+    const d=document.createElement("div");
+    d.className="color-swatch";
+    if(c==="transparent"){
+      d.style.background="repeating-linear-gradient(45deg,#3a3530 0,#3a3530 2px,transparent 0,transparent 50%) 0/6px 6px";
+      d.innerHTML='<span style="font-size:9px;color:#8a7f72;line-height:16px;display:block;text-align:center;">✕</span>';
+    }else{
+      d.style.background=c;
     }
-    setLoading(false);
+    d.addEventListener("click",function(){
+      restoreSelection();
+      if(c==="transparent"){document.execCommand("hiliteColor",false,"transparent");}
+      else{document.execCommand("hiliteColor",false,c);}
+      activeHighlight=c;
+      $("hl-bar").style.background=c==="transparent"?"#9a9088":c;
+      hide("highlight-popup");
+      saveEditorContent();
+    });
+    hp.appendChild(d);
+  });
+
+  // AI tools
+  const atr=$("ai-tools-row");
+  const aiTools=[
+    {id:"summarize",icon:"⚡",label:"Summarize"},
+    {id:"explain",icon:"🔍",label:"Explain"},
+    {id:"flashcards",icon:"🃏",label:"Flashcards"},
+    {id:"quiz",icon:"📝",label:"Quiz me"},
+    {id:"title",icon:"✨",label:"Auto-title"},
+  ];
+  aiTools.forEach(function(t){
+    const b=document.createElement("button");
+    b.className="ai-tool-btn";b.dataset.mode=t.id;
+    b.innerHTML=t.icon+" "+t.label;
+    b.addEventListener("click",function(){
+      runAI(t.id);
+    });
+    atr.appendChild(b);
+  });
+
+  // Organizer pills
+  renderOrgPills();
+}
+
+// ── Selection Helpers ──────────────────────────────────────────────────────
+function saveSelectionState(){
+  const sel=window.getSelection();
+  if(sel&&sel.rangeCount>0){savedSelection=sel.getRangeAt(0).cloneRange();}
+}
+function restoreSelection(){
+  if(!savedSelection)return;
+  const sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(savedSelection);
+}
+function execCmd(cmd,val){
+  $("rich-editor").focus();
+  document.execCommand(cmd,false,val||null);
+  saveEditorContent();
+}
+
+// ── Toolbar button states ──────────────────────────────────────────────────
+document.addEventListener("selectionchange",function(){
+  $("btn-bold").classList.toggle("active",document.queryCommandState("bold"));
+  $("btn-italic").classList.toggle("active",document.queryCommandState("italic"));
+  $("btn-underline").classList.toggle("active",document.queryCommandState("underline"));
+  $("btn-strike").classList.toggle("active",document.queryCommandState("strikethrough"));
+});
+
+// ── Word toolbar events ────────────────────────────────────────────────────
+function bindWordToolbar(){
+  $("word-toolbar").addEventListener("mousedown",saveSelectionState);
+  $("word-toolbar").addEventListener("touchstart",saveSelectionState,{passive:true});
+
+  $("btn-bold").addEventListener("mousedown",function(e){e.preventDefault();execCmd("bold");});
+  $("btn-italic").addEventListener("mousedown",function(e){e.preventDefault();execCmd("italic");});
+  $("btn-underline").addEventListener("mousedown",function(e){e.preventDefault();execCmd("underline");});
+  $("btn-strike").addEventListener("mousedown",function(e){e.preventDefault();execCmd("strikethrough");});
+
+  $("btn-left").addEventListener("mousedown",function(e){e.preventDefault();execCmd("justifyLeft");});
+  $("btn-center").addEventListener("mousedown",function(e){e.preventDefault();execCmd("justifyCenter");});
+  $("btn-right").addEventListener("mousedown",function(e){e.preventDefault();execCmd("justifyRight");});
+
+  $("btn-ul").addEventListener("mousedown",function(e){e.preventDefault();execCmd("insertUnorderedList");});
+  $("btn-ol").addEventListener("mousedown",function(e){e.preventDefault();execCmd("insertOrderedList");});
+
+  $("btn-h1").addEventListener("mousedown",function(e){e.preventDefault();execCmd("formatBlock","<h1>");});
+  $("btn-h2").addEventListener("mousedown",function(e){e.preventDefault();execCmd("formatBlock","<h2>");});
+
+  $("btn-clear-fmt").addEventListener("mousedown",function(e){e.preventDefault();restoreSelection();execCmd("removeFormat");});
+  $("btn-hr").addEventListener("mousedown",function(e){e.preventDefault();execCmd("insertHTML","<hr/>");});
+
+  $("btn-text-color").addEventListener("mousedown",function(e){
+    e.preventDefault();saveSelectionState();
+    const p=$("text-color-popup");
+    p.style.display=p.style.display==="none"||!p.style.display?"flex":"none";
+    hide("highlight-popup");
+  });
+  $("btn-highlight").addEventListener("mousedown",function(e){
+    e.preventDefault();saveSelectionState();
+    const p=$("highlight-popup");
+    p.style.display=p.style.display==="none"||!p.style.display?"flex":"none";
+    hide("text-color-popup");
+  });
+
+  $("font-select").addEventListener("change",function(){
+    restoreSelection();
+    document.execCommand("fontName",false,this.value.split(",")[0].trim());
+    saveEditorContent();
+  });
+  $("size-select").addEventListener("change",function(){
+    restoreSelection();
+    const sz=parseInt(this.value);
+    const map=[[10,1],[13,2],[16,3],[18,4],[24,5],[32,6],[48,7]];
+    let fs=3;for(const [px,f] of map){if(sz<=px){fs=f;break;}else fs=7;}
+    document.execCommand("fontSize",false,fs);
+    const fonts=$("rich-editor").querySelectorAll("font[size]");
+    fonts.forEach(function(el){el.style.fontSize=sz+"px";});
+    saveEditorContent();
+  });
+
+  // Close popups on outside click
+  document.addEventListener("click",function(e){
+    if(!e.target.closest("#btn-text-color"))hide("text-color-popup");
+    if(!e.target.closest("#btn-highlight"))hide("highlight-popup");
+  });
+}
+
+// ── Editor ─────────────────────────────────────────────────────────────────
+function saveEditorContent(){
+  if(!activeId||!$("rich-editor"))return;
+  const html=$("rich-editor").innerHTML;
+  const n=notes.find(function(n){return n.id===activeId;});
+  if(n){n.body=html;n.updatedAt=Date.now();saveNotes();renderNoteList();}
+  updateWordCount();
+}
+
+function loadNoteIntoEditor(note){
+  $("note-title-input").value=note.title||"";
+  $("note-date").textContent=fmtDate(note.createdAt);
+  if(note.examTag){$("note-tag-display").textContent=note.examTag;show("note-tag-display");}
+  else hide("note-tag-display");
+  $("tag-select").value=note.examTag||"";
+  const ed=$("rich-editor");
+  if(ed.innerHTML!==note.body){ed.innerHTML=note.body||"";}
+  updateNoteColorDots();
+  updateWordCount();
+}
+
+function updateWordCount(){
+  const n=notes.find(function(n){return n.id===activeId;});
+  $("wc-label").textContent=(n?getWordCount(n.body):0)+"w";
+}
+
+function updateNoteColorDots(){
+  const n=notes.find(function(n){return n.id===activeId;});
+  if(!n)return;
+  $("note-color-dots").querySelectorAll(".ndot").forEach(function(d){
+    d.classList.toggle("sel",d.dataset.color===n.color);
+  });
+}
+
+// ── Notes CRUD ─────────────────────────────────────────────────────────────
+function newNote(){
+  const n={
+    id:Date.now().toString(),title:"",body:"",
+    color:NOTE_COLORS[notes.length%NOTE_COLORS.length],
+    strokes:[],examTag:"",createdAt:Date.now(),updatedAt:Date.now()
+  };
+  notes.unshift(n);saveNotes();
+  setActiveNote(n.id);
+  renderNoteList();
+  setTimeout(function(){$("note-title-input").focus();},60);
+}
+
+function deleteNote(id){
+  if(!confirm("Delete this note?"))return;
+  notes=notes.filter(function(n){return n.id!==id;});
+  saveNotes();
+  if(activeId===id){
+    activeId=notes.length?notes[0].id:null;
   }
-
-  const tools=[{id:"summarize",icon:"⚡",label:"Summarize"},{id:"explain",icon:"🔍",label:"Explain"},{id:"flashcards",icon:"🃏",label:"Flashcards"},{id:"quiz",icon:"📝",label:"Quiz me"},{id:"title",icon:"✨",label:"Auto-title"}];
-
-  return(
-    <div style={{width:285,borderLeft:"1px solid #2e2b25",background:"#1c1a16",display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",borderBottom:"1px solid #2e2b25"}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#d4b478",letterSpacing:"0.08em"}}>✦ AI Tools</span>
-        <button onClick={onClose} style={{background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px"}}>×</button>
-      </div>
-      <div style={{display:"flex",gap:5,padding:"8px 10px",flexWrap:"wrap",borderBottom:"1px solid #2e2b25"}}>
-        {tools.map(t=>(
-          <button key={t.id} className="ai-tool-btn" onClick={()=>run(t.id)}
-            style={{background:mode===t.id?"rgba(212,180,120,0.18)":"rgba(255,255,255,0.04)",borderColor:mode===t.id?"rgba(212,180,120,0.4)":"#2e2b25",color:mode===t.id?"#d4b478":"#8a7f72"}}>
-            <span>{t.icon}</span>{t.label}
-          </button>
-        ))}
-      </div>
-      <div style={{flex:1,overflowY:"auto",padding:"12px 14px"}}>
-        {loading&&<div style={{display:"flex",alignItems:"center",gap:8,color:"#6a6258",fontFamily:"'DM Mono',monospace",fontSize:11}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>◌</span> Thinking…</div>}
-        {!loading&&result&&<div><div style={{color:"#c0b8b0",fontFamily:"'Lora',Georgia,serif",fontSize:13,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{result}</div>{(mode==="summarize"||mode==="explain")&&<button onClick={()=>onApply(result)} style={{marginTop:12,padding:"6px 14px",background:"rgba(212,180,120,0.12)",border:"1px solid rgba(212,180,120,0.3)",borderRadius:6,color:"#d4b478",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>↓ Append to note</button>}</div>}
-        {!loading&&cards&&<div style={{display:"flex",flexDirection:"column",gap:10}}><div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248",marginBottom:2}}>Tap to flip</div>{cards.map((c,i)=><div key={i} className="flashcard" onClick={()=>setFlipped(f=>({...f,[i]:!f[i]}))} style={{background:flipped[i]?"rgba(109,212,160,0.08)":"rgba(212,180,120,0.06)",border:`1px solid ${flipped[i]?"rgba(109,212,160,0.25)":"rgba(212,180,120,0.2)"}`}}><div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#5a5248",marginBottom:4}}>{flipped[i]?"ANSWER":"QUESTION"} {i+1}</div><div style={{color:flipped[i]?"#6dd4a0":"#e8e0d4",fontFamily:"'Lora',Georgia,serif",fontSize:12,lineHeight:1.6}}>{flipped[i]?c.a:c.q}</div></div>)}</div>}
-        {!loading&&!result&&!cards&&!mode&&<div style={{color:"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:11,lineHeight:1.8}}>Select a tool above to get AI-powered help with your notes.</div>}
-      </div>
-    </div>
-  );
+  renderNoteList();
+  renderEditor();
 }
 
-// ── Exam Organizer ──────────────────────────────────────────────────────────
-function ExamOrganizer({notes,onClose,onSelect}){
-  const [filter,setFilter]=useState("All");
-  const tagged=notes.filter(n=>n.examTag);
-  const shown=filter==="All"?tagged:tagged.filter(n=>n.examTag===filter);
-  const bySubject=EXAM_SUBJECTS.reduce((acc,s)=>{acc[s]=tagged.filter(n=>n.examTag===s).length;return acc;},{});
-  return(
-    <div className="organizer-overlay" onClick={onClose}>
-      <div className="organizer-modal" onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"16px 20px",borderBottom:"1px solid #2e2b25",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div><div style={{fontFamily:"'Lora',Georgia,serif",fontSize:17,fontWeight:600,color:"#e8e0d4"}}>Exam Organizer</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248",marginTop:2}}>{tagged.length} tagged note{tagged.length!==1?"s":""}</div></div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px"}}>×</button>
-        </div>
-        <div style={{display:"flex",gap:6,padding:"10px 16px",borderBottom:"1px solid #2e2b25",flexWrap:"wrap"}}>
-          {["All",...EXAM_SUBJECTS].map(s=><button key={s} className="spill" onClick={()=>setFilter(s)} style={{background:filter===s?"rgba(212,180,120,0.18)":"rgba(255,255,255,0.04)",borderColor:filter===s?"rgba(212,180,120,0.4)":"#3a3530",color:filter===s?"#d4b478":"#6a6258"}}>{s}{s!=="All"&&bySubject[s]>0?` (${bySubject[s]})`:""}</button>)}
-        </div>
-        <div style={{padding:"10px 16px",borderBottom:"1px solid #2e2b25",display:"flex",gap:8,flexWrap:"wrap"}}>
-          {EXAM_SUBJECTS.filter(s=>bySubject[s]>0).map(s=>(
-            <div key={s} style={{flex:"1 1 110px",background:"rgba(255,255,255,0.03)",border:"1px solid #2e2b25",borderRadius:8,padding:"8px 10px"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#6a6258",marginBottom:4}}>{s.toUpperCase()}</div>
-              <div style={{fontFamily:"'Lora',Georgia,serif",fontSize:18,fontWeight:600,color:"#d4b478"}}>{bySubject[s]}</div>
-              <div style={{marginTop:4,height:3,background:"#2a2722",borderRadius:3}}><div style={{width:`${Math.min(100,bySubject[s]*20)}%`,height:"100%",background:"#d4b478",borderRadius:3}}/></div>
-            </div>
-          ))}
-        </div>
-        <div style={{flex:1,overflowY:"auto"}}>
-          {shown.length===0&&<div style={{padding:"24px 20px",color:"#4a4540",fontFamily:"'DM Mono',monospace",fontSize:11,textAlign:"center"}}>No notes tagged with {filter}</div>}
-          {shown.map(n=>(
-            <div key={n.id} className="note-item" onClick={()=>{onSelect(n.id);onClose();}} style={{padding:"10px 20px",borderBottom:"1px solid #252220",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:n.color,flexShrink:0}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:600,color:n.title?"#e8e0d4":"#5a5248",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.title||"Untitled"}</div>
-                <div style={{fontSize:10,color:"#5a5248",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:"'DM Mono',monospace"}}>{n.body?n.body.replace(/<[^>]+>/g," ").slice(0,50):"—"}</div>
-              </div>
-              <span style={{background:"rgba(212,180,120,0.1)",color:"#d4b478",borderRadius:10,padding:"2px 8px",fontFamily:"'DM Mono',monospace",fontSize:9,flexShrink:0}}>{n.examTag}</span>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#3a3530",flexShrink:0}}>{timeAgo(n.updatedAt)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function setActiveNote(id){
+  activeId=id;
+  tab="text";
+  strokes=[];strokesRef=[];
+  const n=notes.find(function(n){return n.id===id;});
+  if(n){strokes=n.strokes?JSON.parse(JSON.stringify(n.strokes)):[];strokesRef=strokes.slice();}
+  renderEditor();
 }
 
-// ── Main App ────────────────────────────────────────────────────────────────
-function App(){
-  const [notes,setNotes]=useState(()=>{try{return JSON.parse(localStorage.getItem("notes_v4")||"[]");}catch{return [];}});
-  const [activeId,setActiveId]=useState(null);
-  const [search,setSearch]=useState("");
-  const [sidebarOpen,setSidebarOpen]=useState(true);
-  const [tab,setTab]=useState("text");
-  const [penColor,setPenColor]=useState("#1a1a1a");
-  const [showAI,setShowAI]=useState(false);
-  const [showOrganizer,setShowOrganizer]=useState(false);
-  const [subjectFilter,setSubjectFilter]=useState("All");
-  const titleRef=useRef(null),editorRef=useRef(null),acTimer=useRef(null);
-  const isComposing=useRef(false);
-
-  useEffect(()=>{localStorage.setItem("notes_v4",JSON.stringify(notes));},[notes]);
-
-  const activeNote=notes.find(n=>n.id===activeId)||null;
-
+// ── Render note list ───────────────────────────────────────────────────────
+function renderNoteList(){
+  const list=$("note-list");
+  const q=search.toLowerCase();
   const filtered=notes
-    .filter(n=>{
-      const q=search.toLowerCase();
-      const tmp=document.createElement("div");tmp.innerHTML=n.body||"";const plainBody=tmp.textContent.toLowerCase();
-      const ms=!q||n.title.toLowerCase().includes(q)||plainBody.includes(q)||(n.examTag||"").toLowerCase().includes(q);
+    .filter(function(n){
+      const plain=stripHtml(n.body).toLowerCase();
+      const ms=!q||n.title.toLowerCase().includes(q)||plain.includes(q)||(n.examTag||"").toLowerCase().includes(q);
       const mf=subjectFilter==="All"||n.examTag===subjectFilter;
       return ms&&mf;
     })
-    .sort((a,b)=>b.updatedAt-a.updatedAt);
+    .sort(function(a,b){return b.updatedAt-a.updatedAt;});
 
-  function newNote(){
-    const n={id:Date.now().toString(),title:"",body:"",color:NOTE_COLORS[notes.length%NOTE_COLORS.length],strokes:[],examTag:"",createdAt:Date.now(),updatedAt:Date.now()};
-    setNotes(p=>[n,...p]);setActiveId(n.id);setTab("text");
-    setTimeout(()=>titleRef.current?.focus(),60);
-  }
-  function updateNote(field,val){setNotes(p=>p.map(n=>n.id===activeId?{...n,[field]:val,updatedAt:Date.now()}:n));}
-  function deleteNote(id){
-    if(!confirm("Delete this note?"))return;
-    setNotes(p=>p.filter(n=>n.id!==id));
-    if(activeId===id)setActiveId(notes.find(n=>n.id!==id)?.id||null);
-  }
-  function changeNoteColor(c){setNotes(p=>p.map(n=>n.id===activeId?{...n,color:c}:n));}
-  function saveStrokes(s){setNotes(p=>p.map(n=>n.id===activeId?{...n,strokes:s,updatedAt:Date.now()}:n));}
+  $("note-count").textContent=notes.length;
+  list.innerHTML="";
 
-  // Save rich text content
-  function saveEditorContent(){
-    if(!editorRef.current||!activeId)return;
-    const html=editorRef.current.innerHTML;
-    setNotes(p=>p.map(n=>n.id===activeId?{...n,body:html,updatedAt:Date.now()}:n));
+  if(!filtered.length){
+    const d=document.createElement("div");d.className="no-notes";
+    d.textContent=search?"No results":"No notes yet";
+    list.appendChild(d);return;
   }
 
-  // Sync editor content when switching notes
-  useEffect(()=>{
-    if(!editorRef.current)return;
-    if(activeNote&&tab==="text"){
-      if(editorRef.current.innerHTML!==activeNote.body){
-        editorRef.current.innerHTML=activeNote.body||"";
-      }
+  filtered.forEach(function(n){
+    const item=document.createElement("div");
+    item.className="note-item"+(n.id===activeId?" active":"");
+    const preview=stripHtml(n.body).replace(/\n/g," ").slice(0,26)||"—";
+    item.innerHTML=
+      '<div style="display:flex;align-items:flex-start;gap:6px;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div class="note-item-title'+(n.title?" has-title":"")+'">'+escHtml(n.title||"Untitled")+'</div>'+
+          '<div class="note-item-preview">'+
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">'+escHtml(preview)+'</span>'+
+            (n.strokes&&n.strokes.length?'<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#4a4540" stroke-width="2"><path d="M3 17c3-3 5-5 8-2s5-1 8-5"/></svg>':'')+
+            (n.examTag?'<span class="exam-badge">'+escHtml(n.examTag)+'</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div class="note-item-meta">'+
+          '<div class="note-dot" style="background:'+n.color+';"></div>'+
+          '<span class="note-time">'+timeAgo(n.updatedAt)+'</span>'+
+        '</div>'+
+      '</div>';
+    item.addEventListener("click",function(){
+      saveEditorContent();
+      setActiveNote(n.id);
+    });
+    list.appendChild(item);
+  });
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Render editor ──────────────────────────────────────────────────────────
+function renderEditor(){
+  const n=notes.find(function(n){return n.id===activeId;});
+
+  // Topbar note-dependent items
+  const hasNote=!!n;
+  const isWrite=tab==="text";
+  const isDraw=tab==="draw";
+
+  $("tab-sep").style.display=hasNote?"":"none";
+  $("tab-write").style.display=hasNote?"":"none";
+  $("tab-draw").style.display=hasNote?"":"none";
+  $("tab-write").classList.toggle("act",isWrite);
+  $("tab-draw").classList.toggle("act",isDraw);
+
+  $("voice-btn").style.display=(hasNote&&isWrite)?"":"none";
+  $("ai-btn").style.display=(hasNote&&isWrite)?"":"none";
+  $("pdf-btn").style.display=(hasNote&&isWrite)?"":"none";
+  $("write-sep1").style.display=(hasNote&&isWrite)?"":"none";
+  $("note-color-dots").style.display=(hasNote&&isWrite)?"flex":"none";
+  $("write-sep2").style.display=(hasNote&&isWrite)?"":"none";
+  $("wc-label").style.display=(hasNote&&isWrite)?"":"none";
+  $("tag-select").style.display=(hasNote&&isWrite)?"":"none";
+
+  $("pen-colors").style.display=(hasNote&&isDraw)?"flex":"none";
+  $("pen-label").style.display=(hasNote&&isDraw)?"":"none";
+
+  $("del-sep").style.display=hasNote?"":"none";
+  $("delete-btn").style.display=hasNote?"":"none";
+
+  $("word-toolbar").style.display=(hasNote&&isWrite)?"flex":"none";
+
+  // Content
+  hide("empty-state");hide("write-pane");hide("draw-pane");
+  if(showAI&&isWrite&&hasNote)showFlex("ai-panel"); else hide("ai-panel");
+
+  if(!hasNote){
+    show("empty-state");
+    $("empty-label").textContent=notes.length===0?"Create your first note":"Select a note to edit";
+    $("empty-new-btn").style.display=notes.length===0?"":"none";
+    return;
+  }
+
+  if(isWrite){
+    $("write-pane").style.display="flex";
+    loadNoteIntoEditor(n);
+  }else{
+    show("draw-pane");
+    initCanvas();
+    strokesRef=n.strokes?JSON.parse(JSON.stringify(n.strokes)):[];
+    strokes=strokesRef.slice();
+    renderCanvas(strokes);
+    updateDrawUI();
+  }
+}
+
+// ── Canvas ─────────────────────────────────────────────────────────────────
+let ro=null;
+function initCanvas(){
+  const cv=$("main-canvas");
+  const wrap=$("canvas-wrap");
+  if(ro){ro.disconnect();}
+  ro=new ResizeObserver(function(){
+    cv.width=wrap.offsetWidth;cv.height=wrap.offsetHeight;
+    renderCanvas(strokesRef);
+  });
+  ro.observe(wrap);
+  cv.width=wrap.offsetWidth;cv.height=wrap.offsetHeight;
+}
+
+function renderCanvas(list,live){
+  const cv=$("main-canvas");if(!cv)return;
+  const ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle="rgba(80,110,160,0.12)";ctx.lineWidth=0.5;
+  for(let x=0;x<=cv.width;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke();}
+  for(let y=0;y<=cv.height;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke();}
+  const ax=Math.round(cv.width*0.12),ay=Math.round(cv.height*0.86);
+  ctx.strokeStyle="rgba(90,120,180,0.28)";ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(ax,12);ctx.lineTo(ax,cv.height-12);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(12,ay);ctx.lineTo(cv.width-12,ay);ctx.stroke();
+  ctx.fillStyle="rgba(90,120,180,0.28)";
+  ctx.beginPath();ctx.moveTo(ax,6);ctx.lineTo(ax-4,18);ctx.lineTo(ax+4,18);ctx.fill();
+  ctx.beginPath();ctx.moveTo(cv.width-6,ay);ctx.lineTo(cv.width-18,ay-4);ctx.lineTo(cv.width-18,ay+4);ctx.fill();
+  const all=live?list.concat([live]):list;
+  all.forEach(function(s){
+    if(!s.points||s.points.length<2)return;
+    ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=2.2;
+    if(s.color==="#a8b4c0"){
+      const g=ctx.createLinearGradient(s.points[0].x,s.points[0].y,s.points[s.points.length-1].x,s.points[s.points.length-1].y);
+      g.addColorStop(0,"#d0dce8");g.addColorStop(0.45,"#8a9eae");g.addColorStop(1,"#c2ceda");
+      ctx.strokeStyle=g;
+    }else ctx.strokeStyle=s.color;
+    ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
+    for(let i=1;i<s.points.length-1;i++){
+      const mx=(s.points[i].x+s.points[i+1].x)/2,my=(s.points[i].y+s.points[i+1].y)/2;
+      ctx.quadraticCurveTo(s.points[i].x,s.points[i].y,mx,my);
     }
-  },[activeId,tab]);
+    ctx.lineTo(s.points[s.points.length-1].x,s.points[s.points.length-1].y);
+    ctx.stroke();ctx.restore();
+  });
+  $("canvas-hint").style.display=strokesRef.length===0?"":"none";
+}
 
-  function applyAIText(text){
-    if(!editorRef.current)return;
-    editorRef.current.focus();
-    document.execCommand("insertHTML",false,`<hr/><p>${text.replace(/\n/g,"</p><p>")}</p>`);
-    saveEditorContent();
+function getCanvasPos(e,cv){
+  const r=cv.getBoundingClientRect();
+  const sx=cv.width/r.width,sy=cv.height/r.height;
+  const src=e.touches?e.touches[0]:e;
+  return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};
+}
+
+function updateDrawUI(){
+  const cnt=strokesRef.length;
+  $("stroke-count").textContent=cnt+" stroke"+(cnt!==1?"s":"");
+  $("undo-btn").disabled=cnt===0;$("undo-btn").style.color=cnt?"#8a7f72":"#3a3530";
+  $("clear-btn").disabled=cnt===0;$("clear-btn").style.color=cnt?"#e05858":"#3a3530";
+}
+
+function saveDrawing(){
+  const n=notes.find(function(n){return n.id===activeId;});
+  if(n){n.strokes=strokesRef.slice();n.updatedAt=Date.now();saveNotes();renderNoteList();}
+}
+
+// ── AI Panel ───────────────────────────────────────────────────────────────
+async function runAI(mode){
+  aiMode=mode;
+  document.querySelectorAll(".ai-tool-btn").forEach(function(b){
+    b.classList.toggle("active",b.dataset.mode===mode);
+  });
+  const n=notes.find(function(n){return n.id===activeId;});
+  if(!n)return;
+  const content="Title: "+(n.title||"Untitled")+"\n\n"+stripHtml(n.body);
+  const res=$("ai-results");
+  res.innerHTML='<div class="ai-loading"><span class="ai-spinner">◌</span> Thinking…</div>';
+
+  if(mode==="title"){
+    const r=await callAI("Suggest a short, clear title (max 6 words) for this note. Return ONLY the title, no quotes.",content,100);
+    if(r&&activeId){
+      const nd=notes.find(function(n){return n.id===activeId;});
+      if(nd){nd.title=r.trim();nd.updatedAt=Date.now();saveNotes();}
+      $("note-title-input").value=r.trim();renderNoteList();
+    }
+    res.innerHTML='<div class="ai-text">Title updated: '+escHtml(r)+'</div>';
+    return;
   }
-  function applyTitle(t){updateNote("title",t);}
+  if(mode==="summarize"){
+    const r=await callAI("You are a concise study assistant. Summarize the note in 3-5 bullet points. Use • for bullets. Be brief and clear.",content);
+    res.innerHTML='<div class="ai-text">'+escHtml(r)+'</div><button class="ai-append-btn" id="ai-append">↓ Append to note</button>';
+    document.getElementById("ai-append").addEventListener("click",function(){appendToNote(r);});
+  }else if(mode==="explain"){
+    const r=await callAI("You are a helpful tutor. Expand and explain the key concepts in this note in simple terms. Add context that helps a student understand.",content);
+    res.innerHTML='<div class="ai-text">'+escHtml(r)+'</div><button class="ai-append-btn" id="ai-append">↓ Append to note</button>';
+    document.getElementById("ai-append").addEventListener("click",function(){appendToNote(r);});
+  }else if(mode==="flashcards"){
+    const r=await callAI('Create exactly 5 flashcard question-answer pairs from this note. Return ONLY valid JSON array: [{"q":"question","a":"answer"},...]. No markdown, no extra text.',content,800);
+    try{
+      const clean=r.replace(/```json|```/g,"").trim();
+      flashCards=JSON.parse(clean);flippedCards={};
+      renderFlashcards();
+    }catch(e){res.innerHTML='<div class="ai-text">Could not generate cards. Try again.</div>';}
+  }else if(mode==="quiz"){
+    const r=await callAI("Create a 5-question multiple choice quiz from this note. Format: Q1. [question]\na) ...\nb) ...\nc) ...\nd) ...\nAnswer: [letter]\n\nRepeat for each question.",content,900);
+    res.innerHTML='<div class="ai-text">'+escHtml(r)+'</div>';
+  }
+}
 
-  function startVoice(){
-    if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert("Voice input not supported in this browser.");return;}
+function renderFlashcards(){
+  const res=$("ai-results");
+  res.innerHTML='<div class="flip-hint">Tap to flip</div>';
+  flashCards.forEach(function(c,i){
+    const d=document.createElement("div");
+    const isFlipped=!!flippedCards[i];
+    d.className="flashcard";
+    d.style.background=isFlipped?"rgba(109,212,160,0.08)":"rgba(212,180,120,0.06)";
+    d.style.border="1px solid "+(isFlipped?"rgba(109,212,160,0.25)":"rgba(212,180,120,0.2)");
+    d.innerHTML='<div class="flashcard-label">'+(isFlipped?"ANSWER":"QUESTION")+" "+(i+1)+'</div>'+
+      '<div class="flashcard-text" style="color:'+(isFlipped?"#6dd4a0":"#e8e0d4")+';">'+escHtml(isFlipped?c.a:c.q)+'</div>';
+    d.addEventListener("click",function(){flippedCards[i]=!flippedCards[i];renderFlashcards();});
+    res.appendChild(d);
+  });
+}
+
+function appendToNote(text){
+  if(!activeId)return;
+  const ed=$("rich-editor");
+  ed.focus();
+  document.execCommand("insertHTML",false,"<hr/><p>"+text.replace(/\n/g,"</p><p>")+"</p>");
+  saveEditorContent();
+}
+
+// ── Organizer ─────────────────────────────────────────────────────────────
+function renderOrgPills(){
+  const op=$("org-pills");op.innerHTML="";
+  ["All"].concat(EXAM_SUBJECTS).forEach(function(s){
+    const b=document.createElement("button");
+    b.className="spill"+(orgFilter===s?" active":"");b.textContent=s;
+    b.addEventListener("click",function(){
+      orgFilter=s;renderOrgPills();renderOrgList();
+    });
+    op.appendChild(b);
+  });
+}
+
+function renderOrganizer(){
+  const tagged=notes.filter(function(n){return n.examTag;});
+  $("org-subtitle").textContent=tagged.length+" tagged note"+(tagged.length!==1?"s":"");
+  const bySubject={};
+  EXAM_SUBJECTS.forEach(function(s){bySubject[s]=tagged.filter(function(n){return n.examTag===s;}).length;});
+
+  const stats=$("org-stats");stats.innerHTML="";
+  EXAM_SUBJECTS.filter(function(s){return bySubject[s]>0;}).forEach(function(s){
+    const d=document.createElement("div");d.className="org-stat";
+    d.innerHTML='<div class="org-stat-label">'+s.toUpperCase()+'</div>'+
+      '<div class="org-stat-count">'+bySubject[s]+'</div>'+
+      '<div class="org-stat-bar-bg"><div class="org-stat-bar" style="width:'+Math.min(100,bySubject[s]*20)+'%;"></div></div>';
+    stats.appendChild(d);
+  });
+
+  renderOrgPills();renderOrgList();
+}
+
+function renderOrgList(){
+  const tagged=notes.filter(function(n){return n.examTag;});
+  const shown=orgFilter==="All"?tagged:tagged.filter(function(n){return n.examTag===orgFilter;});
+  const ol=$("org-list");ol.innerHTML="";
+  if(!shown.length){
+    ol.innerHTML='<div class="org-empty">No notes tagged with '+escHtml(orgFilter)+'</div>';return;
+  }
+  shown.forEach(function(n){
+    const d=document.createElement("div");d.className="org-item";
+    d.innerHTML=
+      '<div class="org-item-dot" style="background:'+n.color+';"></div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div class="org-item-title" style="color:'+(n.title?"#e8e0d4":"#5a5248")+';">'+escHtml(n.title||"Untitled")+'</div>'+
+        '<div class="org-item-preview">'+escHtml(stripHtml(n.body).slice(0,50)||"—")+'</div>'+
+      '</div>'+
+      '<span class="org-badge">'+escHtml(n.examTag)+'</span>'+
+      '<span class="org-time">'+timeAgo(n.updatedAt)+'</span>';
+    d.addEventListener("click",function(){
+      hide("organizer-overlay");$("organizer-overlay").classList.remove("show");
+      setActiveNote(n.id);tab="text";renderEditor();
+    });
+    ol.appendChild(d);
+  });
+}
+
+// ── Main event bindings ────────────────────────────────────────────────────
+function bindEvents(){
+  $("new-note-btn").addEventListener("click",newNote);
+  $("empty-new-btn").addEventListener("click",newNote);
+  $("toggle-sidebar-btn").addEventListener("click",function(){
+    $("sidebar").classList.toggle("closed");
+  });
+
+  $("tab-write").addEventListener("click",function(){
+    saveEditorContent();tab="text";renderEditor();
+  });
+  $("tab-draw").addEventListener("click",function(){
+    saveEditorContent();tab="draw";renderEditor();
+  });
+
+  $("delete-btn").addEventListener("click",function(){
+    if(activeId)deleteNote(activeId);
+  });
+
+  $("search-input").addEventListener("input",function(){
+    search=this.value;
+    $("search-clear").style.display=search?"":"none";
+    renderNoteList();
+  });
+  $("search-clear").addEventListener("click",function(){
+    search="";$("search-input").value="";this.style.display="none";renderNoteList();
+  });
+
+  $("note-title-input").addEventListener("input",function(){
+    const n=notes.find(function(n){return n.id===activeId;});
+    if(n){n.title=this.value;n.updatedAt=Date.now();saveNotes();renderNoteList();}
+  });
+
+  $("tag-select").addEventListener("change",function(){
+    const n=notes.find(function(n){return n.id===activeId;});
+    if(n){n.examTag=this.value;n.updatedAt=Date.now();saveNotes();renderNoteList();
+      if(n.examTag){$("note-tag-display").textContent=n.examTag;show("note-tag-display");}
+      else hide("note-tag-display");
+    }
+  });
+
+  $("rich-editor").addEventListener("input",function(){
+    clearTimeout(saveTimer);saveTimer=setTimeout(saveEditorContent,300);
+  });
+  $("rich-editor").addEventListener("blur",saveEditorContent);
+  $("rich-editor").addEventListener("keydown",function(e){
+    if(e.metaKey||e.ctrlKey){
+      if(e.key==="b"){e.preventDefault();execCmd("bold");}
+      if(e.key==="i"){e.preventDefault();execCmd("italic");}
+      if(e.key==="u"){e.preventDefault();execCmd("underline");}
+      if(e.key==="z"){e.preventDefault();document.execCommand("undo",false,null);}
+      if(e.key==="y"){e.preventDefault();document.execCommand("redo",false,null);}
+    }
+  });
+
+  // AI
+  $("ai-btn").addEventListener("click",function(){
+    showAI=!showAI;
+    this.classList.toggle("on",showAI);
+    renderEditor();
+  });
+  $("ai-close-btn").addEventListener("click",function(){showAI=false;$("ai-btn").classList.remove("on");renderEditor();});
+
+  // PDF
+  $("pdf-btn").addEventListener("click",function(){
+    const n=notes.find(function(n){return n.id===activeId;});
+    if(!n)return;
+    const w=window.open("","_blank");
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(n.title||"Note")+'</title>'+
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap"/>'+
+      '<style>body{font-family:"Lora",Georgia,serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.7;}h1.nt{font-size:26px;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:8px;}h1,h2{margin:.5em 0 .3em;}ul,ol{padding-left:1.5em;}hr{border:none;border-top:1px solid #ccc;margin:1em 0;}</style></head>'+
+      '<body><h1 class="nt">'+escHtml(n.title||"Untitled")+'</h1>'+
+      '<p style="color:#888;font-size:12px;margin-bottom:24px;">'+fmtDate(n.createdAt)+(n.examTag?" · "+escHtml(n.examTag):"")+'</p>'+
+      n.body+'</body></html>');
+    w.document.close();w.print();
+  });
+
+  // Voice
+  $("voice-btn").addEventListener("click",function(){
+    if(!("webkitSpeechRecognition" in window)&&!("SpeechRecognition" in window)){alert("Voice input not supported in this browser.");return;}
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     const r=new SR();r.lang="en-US";r.interimResults=false;r.maxAlternatives=1;
-    r.onresult=e=>{
-      editorRef.current?.focus();
+    r.onresult=function(e){
+      $("rich-editor").focus();
       document.execCommand("insertText",false," "+e.results[0][0].transcript);
       saveEditorContent();
     };
     r.start();
+  });
+
+  // Organizer
+  $("organizer-btn").addEventListener("click",function(){renderOrganizer();$("organizer-overlay").classList.add("show");});
+  $("org-close-btn").addEventListener("click",function(){$("organizer-overlay").classList.remove("show");});
+  $("organizer-overlay").addEventListener("click",function(e){if(e.target===this)this.classList.remove("show");});
+
+  // Canvas drawing
+  const cv=$("main-canvas");
+  function canvasPos(e){
+    const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
+    const src=e.touches?e.touches[0]:e;
+    return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};
   }
+  cv.addEventListener("mousedown",function(e){isDrawing=true;currentStroke={color:penColor,points:[canvasPos(e)]};});
+  cv.addEventListener("mousemove",function(e){
+    if(!isDrawing||!currentStroke)return;
+    currentStroke.points.push(canvasPos(e));
+    renderCanvas(strokesRef,currentStroke);
+  });
+  cv.addEventListener("mouseup",endDraw);
+  cv.addEventListener("mouseleave",endDraw);
+  cv.addEventListener("touchstart",function(e){e.preventDefault();isDrawing=true;currentStroke={color:penColor,points:[canvasPos(e)]};},{passive:false});
+  cv.addEventListener("touchmove",function(e){
+    e.preventDefault();
+    if(!isDrawing||!currentStroke)return;
+    currentStroke.points.push(canvasPos(e));
+    renderCanvas(strokesRef,currentStroke);
+  },{passive:false});
+  cv.addEventListener("touchend",endDraw);
 
-  function exportPDF(){
-    if(!activeNote)return;
-    const w=window.open("","_blank");
-    w.document.write(`<!DOCTYPE html><html><head><title>${activeNote.title||"Note"}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap"/><style>body{font-family:'Lora',Georgia,serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.7;}h1.note-title{font-size:26px;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:8px;}h1,h2{margin:0.5em 0 0.3em;}ul,ol{padding-left:1.5em;}hr{border:none;border-top:1px solid #ccc;margin:1em 0;}</style></head><body><h1 class="note-title">${activeNote.title||"Untitled"}</h1><p style="color:#888;font-size:12px;margin-bottom:24px;">${fmtDate(activeNote.createdAt)}${activeNote.examTag?" · "+activeNote.examTag:""}</p>${activeNote.body}</body></html>`);
-    w.document.close();w.print();
-  }
-
-  const wc=activeNote?(()=>{const t=document.createElement("div");t.innerHTML=activeNote.body||"";return t.textContent.trim().split(/\s+/).filter(Boolean).length;})():0;
-
-  return(
-    <div style={{display:"flex",height:"100vh",height:"100dvh",background:"#1a1814",color:"#e8e0d4",overflow:"hidden"}}>
-
-      {showOrganizer&&<ExamOrganizer notes={notes} onClose={()=>setShowOrganizer(false)} onSelect={id=>{setActiveId(id);setTab("text");}}/>}
-
-      {/* ── Sidebar ── */}
-      <div className="sb" style={{width:sidebarOpen?252:0,minWidth:sidebarOpen?252:0,background:"#211f1b",borderRight:"1px solid #2e2b25",display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"15px 12px 10px",borderBottom:"1px solid #2e2b25",flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".14em",color:"#8a7f72",textTransform:"uppercase"}}>Notes</span>
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#4a4540"}}>{notes.length}</span>
-              <button className="ib" onClick={()=>setShowOrganizer(true)} title="Exam Organizer" style={{fontSize:13,opacity:.7}}>📋</button>
-            </div>
-          </div>
-          <div style={{position:"relative",marginBottom:7}}>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search all notes…"
-              style={{width:"100%",background:"#2a2722",border:"1px solid #3a3530",borderRadius:6,padding:"6px 26px 6px 26px",color:"#e8e0d4",fontFamily:"'DM Mono',monospace",fontSize:11}}/>
-            <svg style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",opacity:.35,pointerEvents:"none"}} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#5a5248",cursor:"pointer",fontSize:15,lineHeight:1,padding:0}}>×</button>}
-          </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {["All",...EXAM_SUBJECTS].map(s=>(
-              <button key={s} className="spill" onClick={()=>setSubjectFilter(s)}
-                style={{background:subjectFilter===s?"rgba(212,180,120,0.15)":"transparent",borderColor:subjectFilter===s?"rgba(212,180,120,0.35)":"#2e2b25",color:subjectFilter===s?"#d4b478":"#4a4540"}}>
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button className="new-note-btn" onClick={newNote}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>New note
-        </button>
-
-        <div style={{flex:1,overflowY:"auto"}}>
-          {filtered.length===0&&<div style={{padding:"20px 12px",color:"#3a3530",fontFamily:"'DM Mono',monospace",fontSize:11,textAlign:"center"}}>{search?"No results":"No notes yet"}</div>}
-          {filtered.map(n=>(
-            <div key={n.id} className={`note-item ${n.id===activeId?"active":""}`} onClick={()=>{saveEditorContent();setActiveId(n.id);}} style={{padding:"9px 12px",borderLeft:"2px solid transparent",borderBottom:"1px solid #221f1c"}}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:6}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:600,color:n.title?"#e8e0d4":"#4a4540",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:2}}>{n.title||"Untitled"}</div>
-                  <div style={{fontSize:10,color:"#4a4540",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:"'DM Mono',monospace",display:"flex",alignItems:"center",gap:4}}>
-                    <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis"}}>{(()=>{const t=document.createElement("div");t.innerHTML=n.body||"";return t.textContent.replace(/\n/g," ").slice(0,26)||"—";})()}</span>
-                    {n.strokes?.length>0&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#4a4540" strokeWidth="2"><path d="M3 17c3-3 5-5 8-2s5-1 8-5"/></svg>}
-                    {n.examTag&&<span style={{background:"rgba(212,180,120,0.1)",color:"#c4a060",borderRadius:8,padding:"0 5px",fontSize:8,flexShrink:0}}>{n.examTag}</span>}
-                  </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:n.color}}/>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#333"}}>{timeAgo(n.updatedAt)}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Editor ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,background:"#1a1814"}}>
-
-        {/* Top bar */}
-        <div style={{display:"flex",alignItems:"center",padding:"7px 10px",borderBottom:"1px solid #2e2b25",gap:4,background:"rgba(0,0,0,0.18)",flexShrink:0,flexWrap:"wrap"}}>
-          <button className="ib" onClick={()=>setSidebarOpen(v=>!v)}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
-          </button>
-
-          {activeNote&&<>
-            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
-            <button className={`tb ${tab==="text"?"act":""}`} onClick={()=>{saveEditorContent();setTab("text");}}>✏︎ Write</button>
-            <button className={`tb ${tab==="draw"?"act":""}`} onClick={()=>{saveEditorContent();setTab("draw");}}>⊹ Draw</button>
-          </>}
-
-          <div style={{flex:1}}/>
-
-          {activeNote&&tab==="text"&&<>
-            <button className="ib" onClick={startVoice} title="Voice input" style={{color:"#6a6258"}}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
-            </button>
-            <button className={`ib ${showAI?"on":""}`} onClick={()=>setShowAI(v=>!v)} title="AI Tools">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
-            </button>
-            <button className="ib" onClick={exportPDF} title="Export PDF" style={{color:"#6a6258"}}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
-            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
-            <div style={{display:"flex",gap:3}}>
-              {NOTE_COLORS.map(c=><div key={c} className={`ndot ${activeNote.color===c?"sel":""}`} onClick={()=>changeNoteColor(c)} style={{background:c}}/>)}
-            </div>
-            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#3a3530"}}>{wc}w</span>
-            <select value={activeNote.examTag||""} onChange={e=>updateNote("examTag",e.target.value)} style={{background:"#2a2722",border:"1px solid #3a3530",borderRadius:5,color:"#7a7068",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"3px 5px",cursor:"pointer"}}>
-              <option value="">Tag…</option>
-              {EXAM_SUBJECTS.map(t=><option key={t} value={t}>{t}</option>)}
-            </select>
-          </>}
-
-          {activeNote&&tab==="draw"&&
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {PEN_COLORS.map(pc=>(
-                <div key={pc.id} className={`ps ${penColor===pc.hex?"sel":""}`} onClick={()=>setPenColor(pc.hex)} title={pc.label}
-                  style={{background:pc.id==="metallic"?"linear-gradient(135deg,#d0dce8 0%,#8a9eae 50%,#c2ceda 100%)":pc.hex,boxShadow:pc.id==="white"?"inset 0 0 0 1px #4a4540":"none"}}/>
-              ))}
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#5a5248"}}>{PEN_COLORS.find(p=>p.hex===penColor)?.label}</span>
-            </div>
-          }
-
-          {activeNote&&<>
-            <div style={{width:1,height:13,background:"#2e2b25",margin:"0 1px"}}/>
-            <button className="ib" onClick={()=>deleteNote(activeNote.id)} style={{color:"#e05858"}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            </button>
-          </>}
-        </div>
-
-        {/* Word toolbar — only in write mode */}
-        {activeNote&&tab==="text"&&(
-          <WordToolbar editorRef={editorRef} onSave={saveEditorContent}/>
-        )}
-
-        {/* Content */}
-        {!activeNote?(
-          <div className="fi" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,color:"#3a3530"}}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"#4a4540"}}>{notes.length===0?"Create your first note":"Select a note to edit"}</div>
-            {notes.length===0&&<button onClick={newNote} style={{marginTop:6,padding:"7px 18px",background:"rgba(212,180,120,0.1)",border:"1px solid rgba(212,180,120,0.28)",borderRadius:6,color:"#d4b478",fontFamily:"'DM Mono',monospace",fontSize:12,cursor:"pointer"}}>+ New note</button>}
-          </div>
-        ):tab==="text"?(
-          <div style={{flex:1,display:"flex",minHeight:0}}>
-            <div className="fi" style={{flex:1,display:"flex",flexDirection:"column",padding:"24px 44px",maxWidth:720,width:"100%",margin:"0 auto",minHeight:0,overflowY:"auto"}}>
-              {/* Title */}
-              <input ref={titleRef} value={activeNote.title} onChange={e=>updateNote("title",e.target.value)} placeholder="Title"
-                style={{background:"none",border:"none",color:"#e8e0d4",fontFamily:"'Lora',Georgia,serif",fontSize:24,fontWeight:600,width:"100%",padding:"0 0 10px",borderBottom:"1px solid #252220",marginBottom:14,caretColor:"#d4b478"}}/>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:18}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#3a3530"}}>{fmtDate(activeNote.createdAt)}</span>
-                {activeNote.examTag&&<span style={{background:"rgba(212,180,120,0.1)",color:"#c4a060",borderRadius:10,padding:"1px 8px",fontFamily:"'DM Mono',monospace",fontSize:9}}>{activeNote.examTag}</span>}
-              </div>
-              {/* Rich text editor */}
-              <div
-                ref={editorRef}
-                className="rich-editor"
-                contentEditable={true}
-                suppressContentEditableWarning={true}
-                data-placeholder="Start writing… highlight text to format it"
-                onInput={saveEditorContent}
-                onBlur={saveEditorContent}
-                onKeyDown={e=>{
-                  // Ctrl/Cmd + shortcuts
-                  if((e.ctrlKey||e.metaKey)){
-                    if(e.key==="b"){e.preventDefault();document.execCommand("bold",false,null);}
-                    if(e.key==="i"){e.preventDefault();document.execCommand("italic",false,null);}
-                    if(e.key==="u"){e.preventDefault();document.execCommand("underline",false,null);}
-                    if(e.key==="z"){e.preventDefault();document.execCommand("undo",false,null);}
-                    if(e.key==="y"){e.preventDefault();document.execCommand("redo",false,null);}
-                  }
-                }}
-                style={{flex:1,fontFamily:"'Lora',Georgia,serif"}}
-              />
-            </div>
-            {showAI&&<AIPanel note={activeNote} onClose={()=>setShowAI(false)} onApply={applyAIText} onTitleSuggest={applyTitle}/>}
-          </div>
-        ):(
-          <DrawingCanvas key={activeId} penColor={penColor} savedStrokes={activeNote.strokes||[]} onSave={saveStrokes}/>
-        )}
-      </div>
-    </div>
-  );
+  $("undo-btn").addEventListener("click",function(){
+    strokesRef=strokesRef.slice(0,-1);renderCanvas(strokesRef);updateDrawUI();saveDrawing();
+  });
+  $("clear-btn").addEventListener("click",function(){
+    strokesRef=[];renderCanvas(strokesRef);updateDrawUI();saveDrawing();
+  });
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+function endDraw(){
+  if(!isDrawing)return;isDrawing=false;
+  if(currentStroke&&currentStroke.points.length>1){
+    strokesRef=strokesRef.concat([currentStroke]);
+    renderCanvas(strokesRef);updateDrawUI();saveDrawing();
+  }
+  currentStroke=null;
+}
+
+// ── STAR WARS Lightsaber ──────────────────────────────────────────────────
+(function(){
+  var wrap=document.getElementById("saber-wrap");
+  var blade=document.getElementById("saber-blade");
+  var bladeInner=document.getElementById("saber-blade-inner");
+  var bladeGlowEl=document.getElementById("saber-blade-glow");
+  var bladeCore=document.getElementById("saber-blade-core");
+  var hum=document.getElementById("saber-hum");
+  var dots=document.querySelectorAll(".saber-dot");
+  var on=false;
+  var humInterval=null;
+  var flickerInterval=null;
+  var bladeColor="#00e5ff";
+  var bladeGlowColor="rgba(0,229,255,0.75)";
+
+  if(!wrap||!blade)return; // safety check
+
+  function applyColor(){
+    // vertical gradient — white tip at top, color down
+    if(bladeInner) bladeInner.style.background=
+      "linear-gradient(180deg,rgba(255,255,255,0.95) 0%,"+bladeColor+" 25%,"+bladeColor+" 100%)";
+    if(bladeGlowEl){
+      bladeGlowEl.style.background=bladeColor;
+      bladeGlowEl.style.boxShadow=
+        "0 0 10px 4px "+bladeGlowColor+
+        ",0 0 24px 8px "+bladeGlowColor.replace("0.75","0.25");
+    }
+    if(on&&hum){hum.style.color=bladeColor;hum.style.textShadow="0 0 8px "+bladeColor;}
+  }
+
+  applyColor();
+
+  function ignite(){
+    on=!on;
+    blade.classList.toggle("on",on);
+    if(hum)hum.classList.toggle("on",on);
+    if(navigator.vibrate)navigator.vibrate(on?[40,10,25,10,15]:[20]);
+    if(on){
+      applyColor();
+      var states=["hmmm·","·hmmm","mm·hm","hm·mm"];
+      var hi=0;
+      if(hum)humInterval=setInterval(function(){hum.textContent=states[hi++%states.length];},160);
+      flickerInterval=setInterval(function(){
+        if(bladeGlowEl)bladeGlowEl.style.opacity=(0.55+Math.random()*0.45).toString();
+        if(bladeCore)bladeCore.style.opacity=(0.75+Math.random()*0.25).toString();
+      },70);
+    }else{
+      clearInterval(humInterval);clearInterval(flickerInterval);
+      if(hum){hum.textContent="· · ·";hum.style.color="#2a2722";hum.style.textShadow="none";}
+      if(bladeGlowEl)bladeGlowEl.style.opacity="0.7";
+      if(bladeCore)bladeCore.style.opacity="1";
+    }
+  }
+
+  wrap.addEventListener("click",ignite);
+  wrap.addEventListener("touchstart",function(e){e.preventDefault();ignite();},{passive:false});
+
+  dots.forEach(function(d){
+    function pick(e){
+      e.stopPropagation();
+      dots.forEach(function(x){x.classList.remove("sel");x.style.removeProperty("--dot-glow");});
+      d.classList.add("sel");
+      d.style.setProperty("--dot-glow",d.dataset.glow);
+      bladeColor=d.dataset.color;
+      bladeGlowColor=d.dataset.glow;
+      if(on)applyColor();
+      if(navigator.vibrate)navigator.vibrate(12);
+    }
+    d.addEventListener("click",pick);
+    d.addEventListener("touchstart",function(e){e.preventDefault();pick(e);},{passive:false});
+  });
+})();
+
+// ── Manual Treadmill (no motor — only moves when you push it) ─────────────
+(function(){
+  const frame=document.getElementById("treadmill-frame");
+  const belt=document.getElementById("treadmill-belt");
+  const speedEl=document.getElementById("treadmill-speed");
+  const BELT_W=frame.offsetWidth*4||640;
+  let offset=0;
+  let velocity=0;
+  let dragging=false;
+  let lastX=0;
+  let lastDelta=0;
+
+  // Physics loop — only coasts from momentum, no auto movement
+  (function loop(){
+    if(Math.abs(velocity)>0.05){
+      offset+=velocity;
+      // wrap belt seamlessly
+      const seg=36; // one pattern repeat width in px
+      if(offset>0) offset-=seg;
+      if(offset<-seg*20) offset+=seg;
+      belt.style.transform="translateX("+offset+"px)";
+      // friction — slows to stop like a real manual belt
+      if(!dragging) velocity*=0.92;
+      // speed readout
+      const spd=Math.abs(velocity);
+      if(spd>0.1){
+        speedEl.textContent=spd>6?"fast":spd>3?"med":"slow";
+        speedEl.classList.add("moving");
+      }
+    } else {
+      if(!dragging){
+        speedEl.textContent="··";
+        speedEl.classList.remove("moving");
+      }
+      velocity=0;
+    }
+    requestAnimationFrame(loop);
+  })();
+
+  function onStart(x){
+    dragging=true;
+    lastX=x;
+    lastDelta=0;
+    velocity=0;
+  }
+  function onMove(x){
+    if(!dragging)return;
+    const delta=x-lastX;
+    lastDelta=delta;
+    velocity=delta;
+    offset+=delta;
+    lastX=x;
+    belt.style.transform="translateX("+offset+"px)";
+    const spd=Math.abs(delta);
+    speedEl.textContent=spd>8?"fast":spd>3?"med":spd>0.5?"slow":"··";
+    speedEl.classList.toggle("moving",spd>0.5);
+    if(navigator.vibrate&&spd>5)navigator.vibrate(3);
+  }
+  function onEnd(){
+    dragging=false;
+    // flick — keep momentum going
+    velocity=lastDelta*1.3;
+  }
+
+  frame.addEventListener("mousedown",function(e){onStart(e.clientX);});
+  document.addEventListener("mousemove",function(e){onMove(e.clientX);});
+  document.addEventListener("mouseup",onEnd);
+  frame.addEventListener("touchstart",function(e){e.preventDefault();onStart(e.touches[0].clientX);},{passive:false});
+  document.addEventListener("touchmove",function(e){if(dragging)onMove(e.touches[0].clientX);},{passive:true});
+  document.addEventListener("touchend",onEnd);
+})();
+
+// ── Haptic Rings ──────────────────────────────────────────────────────────
+(function(){
+  var rings=document.querySelectorAll(".fidget-ring");
+  var speeds=[0.3,0.48,0.25];
+  var patterns=[[15,8,15],[30],[10,5,10,5,10]];
+
+  rings.forEach(function(r,i){
+    function tap(e){
+      if(e)e.preventDefault();
+      if(navigator.vibrate)navigator.vibrate(patterns[i]);
+      r.classList.remove("haptic","spinning");
+      void r.offsetWidth;
+      r.style.setProperty("--spd",speeds[i]+"s");
+      r.classList.add("spinning");
+      var flashes=0;
+      var flashInterval=setInterval(function(){
+        r.classList.add("haptic");
+        setTimeout(function(){r.classList.remove("haptic");},90);
+        if(navigator.vibrate)navigator.vibrate(7);
+        flashes++;
+        if(flashes>=5){clearInterval(flashInterval);setTimeout(function(){r.classList.remove("spinning");},150);}
+      },speeds[i]*1000);
+    }
+    r.addEventListener("click",tap);
+    r.addEventListener("touchstart",tap,{passive:false});
+  });
+})();
+
+// ── Laser Cursor ──────────────────────────────────────────────────────────
+(function(){
+  var laserBtn=document.getElementById("laser-toggle");
+  var laserCursor=document.getElementById("laser-cursor");
+  var trailCanvas=document.getElementById("laser-trail");
+  var tctx=trailCanvas.getContext("2d");
+  var laserOn=false;
+  var trailPoints=[];
+  var rafId=null;
+
+  function resizeTrail(){
+    trailCanvas.width=window.innerWidth;trailCanvas.height=window.innerHeight;
+    trailCanvas.style.position="fixed";trailCanvas.style.top="0";trailCanvas.style.left="0";
+    trailCanvas.style.pointerEvents="none";trailCanvas.style.zIndex="9997";
+  }
+  window.addEventListener("resize",resizeTrail);
+
+  function drawTrail(){
+    tctx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
+    trailPoints=trailPoints.filter(function(p){p.age++;return p.age<24;});
+    for(var i=1;i<trailPoints.length;i++){
+      var p=trailPoints[i],pp=trailPoints[i-1];
+      var alpha=1-(p.age/24);
+      tctx.beginPath();tctx.moveTo(pp.x,pp.y);tctx.lineTo(p.x,p.y);
+      tctx.strokeStyle="rgba(255,40,40,"+alpha+")";
+      tctx.lineWidth=Math.max(1,3*(1-p.age/24));
+      tctx.shadowColor="rgba(255,0,0,"+(alpha*0.8)+")";tctx.shadowBlur=8;
+      tctx.stroke();
+    }
+    tctx.shadowBlur=0;
+    rafId=requestAnimationFrame(drawTrail);
+  }
+
+  function moveLaser(x,y){
+    laserCursor.style.left=x+"px";laserCursor.style.top=y+"px";
+    trailPoints.push({x:x,y:y,age:0});
+  }
+
+  laserBtn.addEventListener("click",function(){
+    laserOn=!laserOn;
+    laserBtn.classList.toggle("on",laserOn);
+    laserBtn.textContent=laserOn?"🔴":"🔴 laser";
+    laserCursor.style.display=laserOn?"block":"none";
+    trailCanvas.style.display=laserOn?"block":"none";
+    if(laserOn){document.body.style.cursor="none";resizeTrail();drawTrail();}
+    else{document.body.style.cursor="";cancelAnimationFrame(rafId);tctx.clearRect(0,0,trailCanvas.width,trailCanvas.height);trailPoints=[];}
+  });
+
+  document.addEventListener("mousemove",function(e){if(laserOn)moveLaser(e.clientX,e.clientY);});
+  document.addEventListener("touchmove",function(e){if(laserOn)moveLaser(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+})();
+
+loadNotes();
+initToolbar();
+bindWordToolbar();
+bindEvents();
+renderNoteList();
+renderEditor();
 </script>
 </body>
 </html>
